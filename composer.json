@@ -1,0 +1,28 @@
+{
+    "name": "svc-ujds/app",
+    "description": "Systeme de gestion des versements",
+    "type": "project",
+    "require": {
+        "phpoffice/phpspreadsheet": "1.29",
+        "tecnickcom/tcpdf": "*"
+    },
+    "authors": [
+        {
+            "name": "Antigravity",
+            "email": "antigravity@google.com"
+        }
+    ],
+    "repositories": {
+        "packagist": {
+            "type": "composer",
+            "url": "https://packagist.org"
+        },
+        "packagist.org": {
+            "type": "composer",
+            "url": "https://packagist.org"
+        }
+    },
+    "config": {
+        "secure-http": false
+    }
+}
