@@ -55,6 +55,12 @@ class ExportController extends Controller
             }
             require_once $autoloadPath;
             
+            if (!class_exists('\PhpOffice\PhpSpreadsheet\Spreadsheet')) {
+               $this->setFlash('error', 'L\'export Excel est temporairement désactivé (bibliothèque manquante). Veuillez utiliser l\'export PDF.');
+               $this->redirect(BASE_URL . '/dashboard');
+               return;
+            }
+
             $spreadsheet = new \PhpOffice\PhpSpreadsheet\Spreadsheet();
             $sheet = $spreadsheet->getActiveSheet();
             $sheet->setTitle('Membres');

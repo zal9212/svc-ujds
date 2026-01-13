@@ -3,8 +3,7 @@
     "description": "Systeme de gestion des versements",
     "type": "project",
     "require": {
-        "phpoffice/phpspreadsheet": "1.29",
-        "tecnickcom/tcpdf": "*"
+        "tecnickcom/tcpdf": "^6.6"
     },
     "authors": [
         {
