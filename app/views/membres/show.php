@@ -28,6 +28,11 @@
                 </a>
             <?php endif; ?>
 
+            <a href="<?= BASE_URL ?>/export/pdf?type=fiche-membre&id=<?= (int)$membre['id'] ?>" class="flex-1 sm:flex-none text-center bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 px-6 py-3 rounded-2xl border border-slate-200 dark:border-slate-700 hover:bg-slate-200 dark:hover:bg-slate-700 transition font-medium shadow-sm flex items-center justify-center gap-2">
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path></svg>
+                Fiche PDF
+            </a>
+
             <a href="<?= BASE_URL ?>/membres" class="flex-1 sm:flex-none text-center bg-gray-200 dark:bg-gray-800 text-gray-700 dark:text-gray-300 px-6 py-3 rounded-2xl hover:bg-gray-300 dark:hover:bg-gray-700 transition font-medium">
                 ← Retour
             </a>
@@ -180,12 +185,10 @@
                     <dt class="text-sm font-medium text-gray-600 dark:text-gray-400 transition-colors">Missidé</dt>
                     <dd class="text-sm text-gray-900 dark:text-gray-300 mt-1 transition-colors"><?= htmlspecialchars($membre['misside'] ?? '-') ?></dd>
                 </div>
-                <?php if (in_array($currentUser['role'], ['admin', 'comptable'])): ?>
                 <div>
-                    <dt class="text-sm font-medium text-gray-600 dark:text-gray-400 transition-colors">Montant Mensuel</dt>
-                    <dd class="text-sm text-gray-900 dark:text-white mt-1 font-medium transition-colors"><?= number_format($membre['montant_mensuel'], 0, ',', ' ') ?> FCFA</dd>
+                    <dt class="text-sm font-medium text-gray-600 dark:text-gray-400 transition-colors">Cotisation Mensuelle</dt>
+                    <dd class="text-sm text-gray-900 dark:text-white mt-1 font-medium transition-colors"><?= number_format($membre['montant_mensuel'], 0, ',', ' ') ?> FCFA / mois</dd>
                 </div>
-                <?php endif; ?>
             </dl>
 
             <!-- User Account Section -->
@@ -428,22 +431,63 @@
                                 </tr>
                             </thead>
                             <tbody class="bg-white dark:bg-gray-900 divide-y divide-gray-200 dark:divide-gray-800 transition-colors">
-                                <?php foreach ($membre['versements'] as $versement): ?>
-                                    <?php 
-                                    // Récupérer les données de réconciliation (via la situation globale pour avoir tout l'historique)
-                                    $rec = $globalSituation['reconciled'][$versement['id']] ?? null;
-                                    $vStatut = $rec ? $rec['display_statut'] : $versement['statut'];
-                                    $vMontant = $rec ? $rec['display_montant'] : (float)$versement['montant'];
-                                    $appliedAdvance = $rec ? $rec['applied_advance'] : 0;
-                                    ?>
+                                <?php 
+                                // Préparation : Grouper les données réconciliées par mois
+                                $versementsByMonth = [];
+                                // Mapping mois nombre -> nom (DOIT matcher exactement la BDD/Membre.php)
+                                $moisFr = [
+                                    1 => 'janvier', 2 => 'février', 3 => 'mars', 4 => 'avril',
+                                    5 => 'mai', 6 => 'juin', 7 => 'juillet', 8 => 'août',
+                                    9 => 'septembre', 10 => 'octobre', 11 => 'novembre', 12 => 'décembre'
+                                ];
+
+                                if (!empty($globalSituation['reconciled'])) {
+                                    foreach ($globalSituation['reconciled'] as $rec) {
+                                        // On ne garde que ceux de l'année en cours d'affichage
+                                        if ($rec['annee'] == $annee) {
+                                            $versementsByMonth[$rec['mois']][] = $rec;
+                                        }
+                                    }
+                                }
+
+                                // Boucle sur les 12 mois
+                                for ($m = 1; $m <= 12; $m++):
+                                    $nomMois = $moisFr[$m];
+                                    $entries = $versementsByMonth[$nomMois] ?? [];
+                                    
+                                    // Si aucune entrée pour ce mois, on affiche une ligne vide
+                                    if (empty($entries)):
+                                ?>
+                                    <tr class="hover:bg-gray-50 dark:hover:bg-gray-800 transition">
+                                        <td class="px-4 py-3 text-sm text-gray-500 dark:text-gray-500 transition-colors">
+                                            <?= ucfirst($nomMois) ?> <?= $annee ?>
+                                        </td>
+                                        <td class="px-4 py-3 text-sm text-gray-400 dark:text-gray-600">-</td>
+                                        <td class="px-4 py-3">
+                                            <span class="inline-block px-2 py-1 text-[10px] font-bold bg-gray-50 text-gray-400 border border-gray-200 dark:bg-gray-800 dark:text-gray-600 dark:border-gray-700 rounded-lg">
+                                                -
+                                            </span>
+                                        </td>
+                                        <td class="px-4 py-3 text-sm text-gray-400 dark:text-gray-600">-</td>
+                                    </tr>
+                                <?php 
+                                    else: 
+                                        // Sinon on affiche chaque entrée trouvée pour ce mois
+                                        foreach ($entries as $rec):
+                                            $vStatut = $rec['display_statut'];
+                                            $vMontant = $rec['display_montant'];
+                                            $appliedAdvance = $rec['applied_advance'] ?? 0;
+                                            // Récupérer l'ID original si dispo (pour suppression) - pour les items virtuels, pas d'ID
+                                            $originalId = (strpos((string)$rec['id'], 'virt_') === 0) ? null : $rec['id'];
+                                ?>
                                     <tr class="hover:bg-gray-50 dark:hover:bg-gray-800 transition">
                                         <td class="px-4 py-3 text-sm text-gray-900 dark:text-gray-300 transition-colors">
-                                            <?= htmlspecialchars(ucfirst($versement['mois'])) ?> <?= (int)$versement['annee'] ?>
+                                            <?= htmlspecialchars(ucfirst($rec['mois'])) ?> <?= (int)$rec['annee'] ?>
                                         </td>
                                         <td class="px-4 py-3 text-sm text-gray-900 dark:text-gray-300 transition-colors">
                                             <div class="flex flex-col">
                                                 <?php 
-                                                $pPaid = $rec['paid_principal'] ?? (float)$versement['montant'];
+                                                $pPaid = $rec['paid_principal'] ?? $vMontant;
                                                 $aPaid = $rec['paid_amende'] ?? 0;
                                                 ?>
                                                 <span class="font-medium">
@@ -457,15 +501,15 @@
                                                         $appP = $rec['applied_principal'] ?? 0;
                                                         $appA = $rec['applied_amende'] ?? 0;
                                                         if ($appA > 0): ?>
-                                                            (+<?= number_format($appP, 0, ',', ' ') ?> + <?= number_format($appA, 0, ',', ' ') ?> amende via anticipation)
+                                                            (+<?= number_format($appP, 0, ',', ' ') ?> + <?= number_format($appA, 0, ',', ' ') ?> amende via ant.)
                                                         <?php else: ?>
                                                             (+<?= number_format($appliedAdvance, 0, ',', ' ') ?> via anticipation)
                                                         <?php endif; ?>
                                                     </span>
                                                 <?php endif; ?>
-                                                <?php if (!empty($versement['has_amende'])): ?>
+                                                <?php if (!empty($rec['is_amende']) || ($rec['amende_due'] ?? 0) > 0): ?>
                                                     <span class="inline-flex items-center mt-1 px-1.5 py-0.5 rounded text-[10px] font-medium bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-300 transition-colors w-fit">
-                                                        + Amende incluse
+                                                        <?= ($rec['display_statut'] === 'AMENDE' || $rec['is_amende']) ? 'Amende' : '+ Amende incluse' ?>
                                                     </span>
                                                 <?php endif; ?>
                                             </div>
@@ -473,24 +517,24 @@
                                         <td class="px-4 py-3 transition-colors">
                                             <?php
                                             $statusBadge = match($vStatut) {
-                                                'PAYE', 'PAYE (AVANCE)', 'ANTICIPATION' => 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300',
+                                                'PAYE', 'PAYE (AVANCE)', 'ANTICIPATION', 'VIRTUAL' => 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300',
                                                 'PARTIEL', 'PARTIEL (AVANCE)', 'ANTICIPATION (PARTIEL)' => 'bg-orange-100 text-orange-800 dark:bg-orange-900/30 dark:text-orange-300',
-                                                'EN_ATTENTE' => 'bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-300',
+                                                'EN_ATTENTE', 'RETARD' => 'bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-300',
                                                 'AMENDE' => 'bg-red-600 text-white', 
                                                 'ANNULE' => 'bg-gray-100 text-gray-800 dark:bg-gray-800 dark:text-gray-400',
                                                 default => 'bg-gray-100 text-gray-800 dark:bg-gray-800 dark:text-gray-400'
                                             };
                                             ?>
                                             <span class="inline-block px-2 py-1 text-[10px] font-bold <?= $statusBadge ?> rounded-lg transition-colors shadow-sm">
-                                                <?= $vStatut ?>
+                                                <?= $vStatut === 'VIRTUAL' ? 'ANTICIPATION' : $vStatut ?>
                                             </span>
                                         </td>
                                         <td class="px-4 py-3 text-sm text-gray-600 dark:text-gray-400 transition-colors relative group">
-                                            <span class="block"><?= $versement['date_paiement'] ? date('d/m/Y', strtotime($versement['date_paiement'])) : '-' ?></span>
+                                            <span class="block"><?= (!empty($rec['date_paiement'])) ? date('d/m/Y', strtotime($rec['date_paiement'])) : '-' ?></span>
                                             
-                                            <?php if (in_array($currentUser['role'], ['admin'])): ?>
+                                            <?php if (in_array($currentUser['role'], ['admin']) && $originalId): ?>
                                                 <div class="absolute right-2 top-1/2 -translate-y-1/2 transition-opacity flex gap-1">
-                                                    <button onclick="promptDeleteVersement(<?= $versement['id'] ?>)" class="text-red-400 hover:text-red-600 p-1" title="Supprimer définitivement">
+                                                    <button onclick="promptDeleteVersement(<?= $originalId ?>)" class="text-red-400 hover:text-red-600 p-1" title="Supprimer définitivement">
                                                         <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
                                                         </svg>
@@ -499,7 +543,11 @@
                                             <?php endif; ?>
                                         </td>
                                     </tr>
-                                <?php endforeach; ?>
+                                <?php 
+                                        endforeach; // End foreach entries
+                                    endif; // End if empty entries
+                                endfor; // End for 1-12
+                                ?>
                             </tbody>
                         </table>
                     </div>

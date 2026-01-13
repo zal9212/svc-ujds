@@ -220,6 +220,7 @@ class Membre extends Model
             $aPaid = max(0, $dejaPaye - $montantMensuel);
 
             $reconciled[$vId] = [
+                'id' => $vId,
                 'annee' => (int)$v['annee'],
                 'mois' => strtolower($v['mois']),
                 'original_statut' => $v['statut'],
@@ -387,6 +388,7 @@ class Membre extends Model
                 ];
 
                 $reconciled[$virtualId] = [
+                    'id' => $virtualId,
                     'annee' => $scanYear,
                     'mois' => $moisNom,
                     'original_statut' => 'VIRTUAL', 'display_statut' => $statut, 'display_montant' => $allocation,
