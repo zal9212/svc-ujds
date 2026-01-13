@@ -150,40 +150,32 @@ class Versement extends Model
         $endYear = (int) date('Y', $timestamp);
         $endMonth = (int) date('n', $timestamp); // 1-12
 
-        // Calculer le mois de début
-        $startMonth = $endMonth - ($totalMonths - 1);
-        $startYear = $endYear;
-
-        // Ajuster si on remonte sur les années précédentes
-        while ($startMonth <= 0) {
-            $startMonth += 12;
-            $startYear--;
-        }
-
-        // Créer les versements
+        // Créer les versements (Logique Smart Fill Backwards)
         $count = 0;
-        $currentYear = $startYear;
-        $currentMonth = $startMonth;
+        $currentYear = $endYear;
+        $currentMonth = $endMonth;
+        $maxIterations = 120; // Sécurité (10 ans max)
+        $iterations = 0;
 
         try {
             $this->db->beginTransaction();
 
-            for ($i = 0; $i < $totalMonths; $i++) {
+            // On remonte dans le temps à partir de la date de fin
+            while ($count < $totalMonths && $iterations++ < $maxIterations) {
                 $moisNom = $moisList[$currentMonth - 1];
 
                 // Vérifier si le versement n'existe pas déjà
                 if (!$this->versementExists($membreId, $moisNom, $currentYear)) {
                     // Créer le versement avec montant 0, statut EN_ATTENTE et has_amende = 1
-                    // Le montant reste 0 car c'est un retard non payé, mais has_amende = 1 indique qu'une amende s'applique
                     $this->createVersement($membreId, $moisNom, $currentYear, 0, 'EN_ATTENTE', 1);
                     $count++;
                 }
 
-                // Passer au mois suivant
-                $currentMonth++;
-                if ($currentMonth > 12) {
-                    $currentMonth = 1;
-                    $currentYear++;
+                // Passer au mois précédent
+                $currentMonth--;
+                if ($currentMonth < 1) {
+                    $currentMonth = 12;
+                    $currentYear--;
                 }
             }
 

@@ -425,8 +425,11 @@ class MembreController extends Controller
             if ($avanceInitiale > 0) {
                 try {
                     $type = $this->post('type', 'AVANCE'); // AVANCE ou ANTICIPATION
+                    $dateDebut = $this->post('date_debut'); // Nouveau champ
                     $motif = $type === 'ANTICIPATION' ? "Anticipation ajoutée via configuration" : "Avance ajoutée via configuration";
-                    $this->avanceModel->createAvance($id, $avanceInitiale, $motif, null, $type);
+                    
+                    $this->avanceModel->createAvance($id, $avanceInitiale, $motif, null, $type, $dateDebut);
+                    
                     $typeName = $type === 'ANTICIPATION' ? 'Anticipation' : 'Avance';
                     $messages[] = "{$typeName} de " . number_format($avanceInitiale, 0, ',', ' ') . " FCFA ajoutée.";
                 } catch (Exception $e) {

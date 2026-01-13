@@ -12,7 +12,7 @@
 
     <div class="bg-white dark:bg-gray-900 rounded-2xl border border-gray-200 dark:border-gray-800 p-8 shadow-sm transition-colors">
         <form action="<?= BASE_URL ?>/auth/updatePasswordPost" method="POST" class="space-y-6">
-            <input type="hidden" name="csrf_token" value="<?= $_SESSION['csrf_token'] ?>">
+            <input type="hidden" name="<?= CSRF_TOKEN_NAME ?>" value="<?= Security::generateCsrfToken() ?>">
 
             <div>
                 <label for="current_password" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1 transition-colors">Mot de passe actuel</label>

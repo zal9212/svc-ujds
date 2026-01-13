@@ -41,14 +41,15 @@ class Avance extends Model
     /**
      * Créer une avance ou anticipation
      */
-    public function createAvance(int $membreId, float $montant, string $motif, string $dateAvance = null, string $type = 'AVANCE'): int
+    public function createAvance(int $membreId, float $montant, string $motif, string $dateAvance = null, string $type = 'AVANCE', string $dateDebut = null): int
     {
         $data = [
             'membre_id' => $membreId,
             'montant' => $montant,
             'motif' => $motif,
             'date_avance' => $dateAvance ?? date('Y-m-d'),
-            'type' => $type
+            'type' => $type,
+            'date_debut' => $dateDebut
         ];
         return $this->create($data);
     }

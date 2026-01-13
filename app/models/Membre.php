@@ -37,8 +37,59 @@ class Membre extends Model
         // Récupérer la situation financière complète sur la base de TOUT l'historique
         $situation = $this->getSituationFinanciere($membreForCalculation);
         
+        // --- Statistiques Spécifiques à l'Année Demandée ---
+        $anneeStats = [
+            'mois_retard' => 0,
+            'amende' => 0,
+            'total_verse' => 0,
+            'montant_du' => 0
+        ];
+
+        if ($annee) {
+            $currYear = (int)date('Y');
+            $currMonth = (int)date('n');
+            $moisOrder = $this->_getMoisOrder();
+
+            foreach ($situation['reconciled'] as $id => $data) {
+                if ((int)$data['annee'] === (int)$annee) {
+                    // Retards
+                    $vMonth = $moisOrder[$data['mois']] ?? 0;
+                    $isPastOrCurrent = ($annee < $currYear) || ($annee == $currYear && $vMonth <= $currMonth);
+                    $hasExplicitAmende = $data['is_amende'] || $data['display_statut'] === 'AMENDE';
+
+                    if (($isPastOrCurrent || $hasExplicitAmende) && !in_array($data['display_statut'], ['PAYE', 'PAYE (AVANCE)', 'ANTICIPATION']) && $data['due_total'] > $data['display_montant']) {
+                        $anneeStats['mois_retard']++;
+                    }
+
+                    // Amendes
+                    $anneeStats['amende'] += $data['amende_due'];
+
+                    // Total Versé (Paiement direct + Avance appliquée sur ce mois)
+                    // Note: display_montant est le montant total (payé + avance appliquée)
+                    $anneeStats['total_verse'] += $data['display_montant'];
+
+                    // Montant Dû
+                    $anneeStats['montant_du'] += max(0, $data['due_total'] - $data['display_montant']);
+                }
+            }
+        }
+
         // Fusionner avec les données du membre
         $membre = array_merge($membre, $situation);
+        
+        // Injecter les stats annuelles si une année est spécifiée
+        if ($annee) {
+            $membre['mois_retard_annee'] = $anneeStats['mois_retard'];
+            $membre['amende_annee'] = $anneeStats['amende'];
+            $membre['total_verse_annee'] = $anneeStats['total_verse'];
+            $membre['montant_du_annee'] = $anneeStats['montant_du'];
+        } else {
+            // Par défaut, utiliser les valeurs globales pour éviter les erreurs dans la vue si $annee n'est pas passé
+            $membre['mois_retard_annee'] = $membre['mois_retard'];
+            $membre['amende_annee'] = $membre['amende'];
+            $membre['total_verse_annee'] = $membre['total_verse'];
+            $membre['montant_du_annee'] = $membre['montant_du'];
+        }
 
         // POUR L'AFFICHAGE: On filtre les versements selon l'année demandée + les virtuels
         
@@ -78,18 +129,7 @@ class Membre extends Model
             $membre['versements'] = array_merge($membre['versements'], $virtuals);
             
             // Re-trier pour avoir les futurs en premier (Année DESC, Mois DESC)
-            usort($membre['versements'], function($a, $b) {
-                if ($a['annee'] != $b['annee']) {
-                    return $b['annee'] <=> $a['annee']; // DESC
-                }
-                
-                $moisOrder = [
-                    'janvier' => 1, 'février' => 2, 'mars' => 3, 'avril' => 4, 'mai' => 5, 'juin' => 6,
-                    'juillet' => 7, 'août' => 8, 'septembre' => 9, 'octobre' => 10, 'novembre' => 11, 'décembre' => 12
-                ];
-                
-                return ($moisOrder[strtolower($b['mois'])] ?? 0) <=> ($moisOrder[strtolower($a['mois'])] ?? 0); // DESC
-            });
+            $membre['versements'] = $this->_sortVersements($membre['versements'], true);
         }
 
         return $membre;
@@ -127,7 +167,8 @@ class Membre extends Model
 
         // 4. PASS 3: Anticipations (Mois Futurs - Utilise ANTICIPATION)
         if ($anticipationsPool > 0) {
-            $virtualVersements = $this->_applyAnticipationsToFuture($membre, $versements, $reconciled, $anticipationsPool, $montantMensuel);
+            $anticipations = array_filter($membre['avances'] ?? [], fn($a) => ($a['type'] ?? 'AVANCE') === 'ANTICIPATION');
+            $virtualVersements = $this->_applyAnticipationsToFuture($membre, $versements, $reconciled, $anticipationsPool, $montantMensuel, $anticipations);
         }
 
         // 5. PASS 4: Finalisation des calculs
@@ -137,19 +178,29 @@ class Membre extends Model
     /**
      * Trie les versements par ordre chronologique
      */
-    private function _sortVersements(array $versements): array
+    private function _sortVersements(array $versements, bool $desc = false): array
     {
-        usort($versements, function($a, $b) {
+        $moisOrder = $this->_getMoisOrder();
+        usort($versements, function($a, $b) use ($moisOrder, $desc) {
             if ($a['annee'] != $b['annee']) {
-                return $a['annee'] <=> $b['annee'];
+                return $desc ? ($b['annee'] <=> $a['annee']) : ($a['annee'] <=> $b['annee']);
             }
-            $moisOrder = [
-                'janvier' => 1, 'février' => 2, 'mars' => 3, 'avril' => 4, 'mai' => 5, 'juin' => 6,
-                'juillet' => 7, 'août' => 8, 'septembre' => 9, 'octobre' => 10, 'novembre' => 11, 'décembre' => 12
-            ];
-            return ($moisOrder[strtolower($a['mois'])] ?? 0) <=> ($moisOrder[strtolower($b['mois'])] ?? 0);
+            $valA = $moisOrder[strtolower($a['mois'])] ?? 0;
+            $valB = $moisOrder[strtolower($b['mois'])] ?? 0;
+            return $desc ? ($valB <=> $valA) : ($valA <=> $valB);
         });
         return $versements;
+    }
+
+    /**
+     * Retourne l'ordre des mois
+     */
+    private function _getMoisOrder(): array
+    {
+        return [
+            'janvier' => 1, 'février' => 2, 'mars' => 3, 'avril' => 4, 'mai' => 5, 'juin' => 6,
+            'juillet' => 7, 'août' => 8, 'septembre' => 9, 'octobre' => 10, 'novembre' => 11, 'décembre' => 12
+        ];
     }
 
     /**
@@ -169,6 +220,8 @@ class Membre extends Model
             $aPaid = max(0, $dejaPaye - $montantMensuel);
 
             $reconciled[$vId] = [
+                'annee' => (int)$v['annee'],
+                'mois' => strtolower($v['mois']),
                 'original_statut' => $v['statut'],
                 'display_statut' => $v['statut'],
                 'display_montant' => $dejaPaye,
@@ -225,7 +278,7 @@ class Membre extends Model
      */
     private function _applyAvancesToDebts(array $membre, array $versements, array &$reconciled, float &$avancesPool, float $montantMensuel): void
     {
-        $moisList = ['janvier'=>1,'février'=>2,'mars'=>3,'avril'=>4,'mai'=>5,'juin'=>6,'juillet'=>7,'août'=>8,'septembre'=>9,'octobre'=>10,'novembre'=>11,'décembre'=>12];
+        $moisList = $this->_getMoisOrder();
         $firstUnpaidRealDate = null;
         $existingMap = [];
 
@@ -270,29 +323,58 @@ class Membre extends Model
     /**
      * PASS 3: Création de mois futurs virtuels en utilisant le pool d'ANTICIPATION
      */
-    private function _applyAnticipationsToFuture(array $membre, array $versements, array &$reconciled, float &$anticipationsPool, float $montantMensuel): array
+    private function _applyAnticipationsToFuture(array $membre, array $versements, array &$reconciled, float &$anticipationsPool, float $montantMensuel, array $anticipations = []): array
     {
-        $moisList = ['janvier'=>1,'février'=>2,'mars'=>3,'avril'=>4,'mai'=>5,'juin'=>6,'juillet'=>7,'août'=>8,'septembre'=>9,'octobre'=>10,'novembre'=>11,'décembre'=>12];
+        $moisList = $this->_getMoisOrder();
         $moisInvers = array_flip($moisList);
         $virtualVersements = [];
 
+        // 1. Déterminer le point de départ par défaut (premier mois impayé)
+        $firstUnpaidRealDate = null;
         $existingMap = [];
         foreach ($versements as $v) {
-            if ($v['statut'] !== 'ANNULE') $existingMap[$v['annee'] . '-' . ($moisList[strtolower($v['mois'])] ?? 0)] = $v;
+            if ($v['statut'] === 'ANNULE') continue;
+            $mIndex = $moisList[strtolower($v['mois'])] ?? 0;
+            $key = $v['annee'] . '-' . $mIndex;
+            $existingMap[$key] = $v;
+
+            if (isset($reconciled[$v['id']]) && !in_array($reconciled[$v['id']]['display_statut'], ['PAYE', 'PAYE (AVANCE)']) && !$reconciled[$v['id']]['is_amende']) {
+                $dDate = strtotime($v['annee'] . '-' . $mIndex . '-01');
+                if ($firstUnpaidRealDate === null || $dDate < $firstUnpaidRealDate) $firstUnpaidRealDate = $dDate;
+            }
         }
 
-        $scanYear = (int)date('Y');
-        $scanMonth = (int)date('n');
+        $startTs = $firstUnpaidRealDate !== null ? min(time(), $firstUnpaidRealDate) : time();
+
+        // 2. Si une anticipation a une date de début explicite, on l'utilise si elle est plus récente
+        if (!empty($anticipations)) {
+            $datesDebut = array_filter(array_column($anticipations, 'date_debut'));
+            if ($datesDebut) {
+                $minDateDebut = min($datesDebut);
+                $debutTs = strtotime($minDateDebut);
+                if ($debutTs > $startTs) {
+                    $startTs = $debutTs;
+                }
+            }
+        }
+
+        $scanYear = (int)date('Y', $startTs);
+        $scanMonth = (int)date('n', $startTs);
+
         $lastDate = date('Y-m-d');
-        if (!empty($membre['avances'])) {
-            $dates = array_column(array_filter($membre['avances'], fn($a) => ($a['type'] ?? 'AVANCE') === 'ANTICIPATION'), 'date_avance');
+        if (!empty($anticipations)) {
+            $dates = array_column($anticipations, 'date_avance');
             if ($dates) $lastDate = max($dates);
         }
 
         $iter = 0;
         while ($anticipationsPool > 0 && $iter++ < 120) {
             $key = $scanYear . '-' . $scanMonth;
+            
+            // On saute SYSTÉMATIQUEMENT les records existants (Dettes/Retards)
+            // L'anticipation est strictement réservée aux mois futurs "vides"
             if (!isset($existingMap[$key])) {
+                // On crée un mois virtuel
                 $allocation = min($anticipationsPool, $montantMensuel);
                 $anticipationsPool -= $allocation;
                 $moisNom = $moisInvers[$scanMonth] ?? 'janvier';
@@ -305,6 +387,8 @@ class Membre extends Model
                 ];
 
                 $reconciled[$virtualId] = [
+                    'annee' => $scanYear,
+                    'mois' => $moisNom,
                     'original_statut' => 'VIRTUAL', 'display_statut' => $statut, 'display_montant' => $allocation,
                     'applied_advance' => $allocation, 'applied_principal' => $allocation, 'applied_amende' => 0,
                     'paid_principal' => $allocation, 'paid_amende' => 0, 'is_amende' => false,
@@ -326,6 +410,10 @@ class Membre extends Model
         $moisRetardRelatif = 0;
         $moisRetardBrut = 0;
 
+        $moisOrder = $this->_getMoisOrder();
+        $currYear = (int)date('Y');
+        $currMonth = (int)date('n');
+
         foreach ($reconciled as $id => $data) {
             // Ignorer les mois EN_ATTENTE sans amende ni paiement
             if ($data['display_statut'] === 'EN_ATTENTE' && !$data['is_amende'] && $data['display_montant'] == 0) continue;
@@ -334,7 +422,14 @@ class Membre extends Model
             $totalAmendeDue += $data['amende_due'];
 
             if (strpos((string)$id, 'virt_') !== 0) {
-                if (!in_array($data['display_statut'], ['PAYE', 'PAYE (AVANCE)', 'ANTICIPATION', 'AMENDE']) && $data['due_total'] > $data['display_montant']) {
+                // Pour être en retard, il faut que le mois soit passé ou actuel, OU qu'il ait une amende explicite
+                $vYear = (int)$data['annee'];
+                $vMonth = $moisOrder[$data['mois']] ?? 0;
+                
+                $isPastOrCurrent = ($vYear < $currYear) || ($vYear == $currYear && $vMonth <= $currMonth);
+                $hasExplicitAmende = $data['is_amende'] || $data['display_statut'] === 'AMENDE';
+
+                if (($isPastOrCurrent || $hasExplicitAmende) && !in_array($data['display_statut'], ['PAYE', 'PAYE (AVANCE)', 'ANTICIPATION']) && $data['due_total'] > $data['display_montant']) {
                     $moisRetardRelatif++;
                 }
                 if (isset($data['original_statut']) && $data['original_statut'] === 'EN_ATTENTE') $moisRetardBrut++;

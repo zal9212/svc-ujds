@@ -57,10 +57,20 @@ class ImportController extends Controller
             $this->redirect(BASE_URL . '/import');
         }
 
-        // Vérifier le type
-        $allowedTypes = ['application/vnd.ms-excel', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'];
-        if (!in_array($file['type'], $allowedTypes, true)) {
-            $this->setFlash('error', 'Type de fichier non autorisé. Utilisez .xlsx ou .xls');
+        // Vérifier le type MIME réel (sécurité renforcée)
+        $finfo = finfo_open(FILEINFO_MIME_TYPE);
+        $mimeType = finfo_file($finfo, $file['tmp_name']);
+        finfo_close($finfo);
+
+        $allowedMimeTypes = [
+            'application/vnd.ms-excel', 
+            'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+            'application/zip', // Parfois détecté pour les .xlsx
+            'application/octet-stream' // Cas limite
+        ];
+
+        if (!in_array($mimeType, $allowedMimeTypes, true)) {
+            $this->setFlash('error', 'Type de fichier non autorisé. Utilisez .xlsx ou .xls (Détecté: ' . $mimeType . ')');
             $this->redirect(BASE_URL . '/import');
         }
 

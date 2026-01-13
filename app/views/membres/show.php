@@ -8,7 +8,7 @@
         <div class="flex flex-wrap items-center gap-3">
             <?php if (in_array($currentUser['role'], ['admin'])): ?>
                 <form action="<?= BASE_URL ?>/membres/delete" method="POST" onsubmit="return confirm('Êtes-vous sûr de vouloir supprimer ce membre ? Cette action est irréversible et supprimera tout l\'historique associé.');" class="flex-1 sm:flex-none">
-                    <input type="hidden" name="csrf_token" value="<?= htmlspecialchars($_SESSION['csrf_token'] ?? '') ?>">
+                    <input type="hidden" name="<?= CSRF_TOKEN_NAME ?>" value="<?= Security::generateCsrfToken() ?>">
                     <input type="hidden" name="id" value="<?= (int)$membre['id'] ?>">
                     <button type="submit" class="w-full bg-red-50 dark:bg-red-900/20 text-red-600 dark:text-red-400 px-6 py-3 rounded-2xl border border-red-100 dark:border-red-800 hover:bg-red-100 dark:hover:bg-red-900/40 transition font-medium shadow-sm">
                         Supprimer
@@ -136,22 +136,22 @@
     <div class="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
         <div class="bg-white dark:bg-gray-900 rounded-2xl border border-gray-200 dark:border-gray-800 p-6 transition-colors">
             <p class="text-sm font-medium text-gray-600 dark:text-gray-400 mb-2 transition-colors">Mois en Retard (<?= $annee ?>)</p>
-            <p class="text-3xl font-semibold text-orange-600 dark:text-orange-400 transition-colors"><?= $membre['mois_retard'] ?></p>
+            <p class="text-3xl font-semibold text-orange-600 dark:text-orange-400 transition-colors"><?= $membre['mois_retard_annee'] ?></p>
         </div>
         
         <div class="bg-white dark:bg-gray-900 rounded-2xl border border-gray-200 dark:border-gray-800 p-6 transition-colors">
             <p class="text-sm font-medium text-gray-600 dark:text-gray-400 mb-2 transition-colors">Amende (<?= $annee ?>)</p>
-            <p class="text-2xl font-semibold text-red-600 dark:text-red-400 transition-colors"><?= number_format($membre['amende'], 0, ',', ' ') ?> FCFA</p>
+            <p class="text-2xl font-semibold text-red-600 dark:text-red-400 transition-colors"><?= number_format($membre['amende_annee'], 0, ',', ' ') ?> FCFA</p>
         </div>
         
         <div class="bg-white dark:bg-gray-900 rounded-2xl border border-gray-200 dark:border-gray-800 p-6 transition-colors">
             <p class="text-sm font-medium text-gray-600 dark:text-gray-400 mb-2 transition-colors">Total Versé (<?= $annee ?>)</p>
-            <p class="text-2xl font-semibold text-green-600 dark:text-green-400 transition-colors"><?= number_format($membre['total_verse'], 0, ',', ' ') ?> FCFA</p>
+            <p class="text-2xl font-semibold text-green-600 dark:text-green-400 transition-colors"><?= number_format($membre['total_verse_annee'], 0, ',', ' ') ?> FCFA</p>
         </div>
         
         <div class="bg-white dark:bg-gray-900 rounded-2xl border border-gray-200 dark:border-gray-800 p-6 transition-colors">
             <p class="text-sm font-medium text-gray-600 dark:text-gray-400 mb-2 transition-colors">Montant Dû (<?= $annee ?>)</p>
-            <p class="text-2xl font-semibold text-red-600 dark:text-red-400 transition-colors"><?= number_format($membre['montant_du'], 0, ',', ' ') ?> FCFA</p>
+            <p class="text-2xl font-semibold text-red-600 dark:text-red-400 transition-colors"><?= number_format($membre['montant_du_annee'], 0, ',', ' ') ?> FCFA</p>
         </div>
     </div>
 <?php endif; ?>
@@ -197,7 +197,7 @@
                         <p class="text-xs text-amber-700 dark:text-amber-400 mb-3">Ce membre n'a pas encore de compte utilisateur pour accéder au portail.</p>
                         <?php if ($currentUser['role'] === 'admin'): ?>
                             <form action="<?= BASE_URL ?>/membres/createAccount" method="POST">
-                                <input type="hidden" name="csrf_token" value="<?= $_SESSION['csrf_token'] ?>">
+                                <input type="hidden" name="<?= CSRF_TOKEN_NAME ?>" value="<?= Security::generateCsrfToken() ?>">
                                 <input type="hidden" name="id" value="<?= (int)$membre['id'] ?>">
                                 <button type="submit" class="w-full py-2 bg-amber-600 hover:bg-amber-700 text-white rounded-lg text-xs font-bold transition-colors">
                                     Générer un compte
@@ -282,7 +282,12 @@
                                 <div class="flex items-center justify-between">
                                     <div>
                                         <p class="font-medium text-gray-900 dark:text-white transition-colors"><?= number_format($avance['montant'], 0, ',', ' ') ?> FCFA</p>
-                                        <p class="text-xs text-gray-600 dark:text-gray-400 transition-colors"><?= date('d/m/Y', strtotime($avance['date_avance'])) ?></p>
+                                        <p class="text-xs text-gray-600 dark:text-gray-400 transition-colors">
+                                            le <?= date('d/m/Y', strtotime($avance['date_avance'])) ?>
+                                            <?php if (!empty($avance['date_debut'])): ?>
+                                                &bull; <span class="text-purple-600 dark:text-purple-400 font-medium">Débute le <?= date('m/Y', strtotime($avance['date_debut'])) ?></span>
+                                            <?php endif; ?>
+                                        </p>
                                     </div>
                                     <?php if (in_array($currentUser['role'], ['admin'])): ?>
                                         <div class="flex gap-2">
@@ -368,6 +373,16 @@
                             min="0"
                             step="0.01"
                             placeholder="Montant FCFA"
+                            class="w-full px-3 py-2 border border-purple-300 dark:border-purple-700 dark:bg-gray-800 dark:text-white rounded-xl focus:ring-2 focus:ring-purple-500 focus:border-transparent transition text-sm mb-3"
+                            required
+                        >
+                        
+                        <label class="block text-sm font-medium text-purple-700 dark:text-purple-300 mb-2">
+                            Date de début (optionnel)
+                        </label>
+                        <input 
+                            type="date" 
+                            name="date_debut" 
                             class="w-full px-3 py-2 border border-purple-300 dark:border-purple-700 dark:bg-gray-800 dark:text-white rounded-xl focus:ring-2 focus:ring-purple-500 focus:border-transparent transition text-sm mb-3"
                         >
                         <button 
