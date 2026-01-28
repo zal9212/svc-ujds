@@ -142,10 +142,80 @@ class SupportController extends Controller
             ]);
         }
 
+
         if ($user['role'] === 'membre') {
             $this->redirect(BASE_URL . '/support');
         } else {
             $this->redirect(BASE_URL . '/support/view?membre_id=' . $membreId);
         }
+    }
+
+    /**
+     * Supprimer plusieurs messages
+     */
+    public function deleteMultiple(): void
+    {
+        $this->requireAuth();
+        $user = $this->getCurrentUser();
+        $messageIds = $this->post('ids');
+
+        if (empty($messageIds) || !is_array($messageIds)) {
+            $this->redirect($_SERVER['HTTP_REFERER'] ?? BASE_URL . '/support');
+        }
+
+        $deletedCount = 0;
+        foreach ($messageIds as $id) {
+            $message = $this->messageModel->find((int)$id);
+            if ($message) {
+                // SEUL l'expéditeur ou un ADMIN peut supprimer
+                if ($user['role'] === 'admin' || $user['id'] == $message['sender_id']) {
+                    // Suppression fichiers
+                    if ($message['image_path']) {
+                        $p = PUBLIC_PATH . '/' . $message['image_path'];
+                        if (file_exists($p)) @unlink($p);
+                    }
+                    if ($message['audio_path']) {
+                        $p = PUBLIC_PATH . '/' . $message['audio_path'];
+                        if (file_exists($p)) @unlink($p);
+                    }
+                    $this->messageModel->delete((int)$id);
+                    $deletedCount++;
+                }
+            }
+        }
+
+        if ($deletedCount > 0) {
+            $this->setFlash('success', "$deletedCount message(s) supprimé(s).");
+        }
+        
+        $this->redirect($_SERVER['HTTP_REFERER'] ?? BASE_URL . '/support');
+    }
+
+    /**
+     * Effacer toute la discussion (Admin uniquement)
+     */
+    public function clearChat(): void
+    {
+        $this->requireRole(['admin']);
+        $membreId = (int)$this->post('membre_id');
+        
+        if ($membreId > 0) {
+            $messages = $this->messageModel->getByMembre($membreId);
+            foreach ($messages as $m) {
+                // Suppression fichiers
+                if ($m['image_path']) {
+                    $p = PUBLIC_PATH . '/' . $m['image_path'];
+                    if (file_exists($p)) @unlink($p);
+                }
+                if ($m['audio_path']) {
+                    $p = PUBLIC_PATH . '/' . $m['audio_path'];
+                    if (file_exists($p)) @unlink($p);
+                }
+                $this->messageModel->delete((int)$m['id']);
+            }
+            $this->setFlash('success', "Discussion effacée.");
+        }
+        
+        $this->redirect($_SERVER['HTTP_REFERER'] ?? BASE_URL . '/support');
     }
 }

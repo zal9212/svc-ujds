@@ -51,7 +51,7 @@ define('MAX_UPLOAD_SIZE', 5242880); // 5MB
 define('ALLOWED_EXCEL_TYPES', ['application/vnd.ms-excel', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet']);
 
 // Timezone
-date_default_timezone_set('Africa/Kinshasa');
+date_default_timezone_set('Africa/Dakar');
 
 // Gestion des erreurs
 if (getenv('APP_ENV') === 'production') {

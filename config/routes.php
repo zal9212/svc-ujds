@@ -124,14 +124,19 @@ $router->add('GET', 'declarations/submit', 'DeclarationController', 'submit');
 $router->add('POST', 'declarations/store', 'DeclarationController', 'store');
 $router->add('GET', 'declarations/show', 'DeclarationController', 'show');
 $router->add('POST', 'declarations/message', 'DeclarationController', 'sendMessage');
+$router->add('POST', 'declarations/delete-messages', 'DeclarationController', 'deleteMessages');
 $router->add('GET', 'declarations/admin', 'DeclarationController', 'adminList');
 $router->add('POST', 'declarations/validate', 'DeclarationController', 'validate');
 $router->add('POST', 'declarations/reject', 'DeclarationController', 'reject');
+
+$router->add('POST', 'declarations/clear-chat', 'DeclarationController', 'clearChat');
 
 // Support / Chat Global
 $router->add('GET', 'support', 'SupportController', 'index');
 $router->add('GET', 'support/admin', 'SupportController', 'adminList');
 $router->add('GET', 'support/view', 'SupportController', 'view');
 $router->add('POST', 'support/send', 'SupportController', 'send');
+$router->add('POST', 'support/delete-multiple', 'SupportController', 'deleteMultiple');
+$router->add('POST', 'support/clear-chat', 'SupportController', 'clearChat');
 
 return $router;

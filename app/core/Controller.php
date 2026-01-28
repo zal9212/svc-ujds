@@ -144,6 +144,14 @@ abstract class Controller
     }
 
     /**
+     * Vérifier si l'utilisateur est admin
+     */
+    protected function requireAdmin(): void
+    {
+        $this->requireRole(['admin']);
+    }
+
+    /**
      * Obtenir l'utilisateur connecté
      */
     protected function getCurrentUser(): ?array
