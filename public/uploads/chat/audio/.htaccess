@@ -1,0 +1,8 @@
+AddType audio/webm .webm
+AddType audio/ogg .ogg
+AddType audio/mp4 .mp4
+<IfModule mod_headers.c>
+    Header set Content-Type "audio/webm" "expr=%{REQUEST_URI} =~ /\.webm$/"
+    Header set Content-Type "audio/ogg" "expr=%{REQUEST_URI} =~ /\.ogg$/"
+    Header set Content-Type "audio/mp4" "expr=%{REQUEST_URI} =~ /\.mp4$/"
+</IfModule>

@@ -12,6 +12,11 @@ RewriteRule ^(.*)$ index.php [QSA,L]
     Deny from all
 </FilesMatch>
 
+# Types MIME pour l'audio
+AddType audio/webm .webm
+AddType audio/ogg .ogg
+AddType audio/mp4 .mp4
+
 # Headers de sécurité
 <IfModule mod_headers.c>
     Header set X-Content-Type-Options "nosniff"

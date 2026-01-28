@@ -139,10 +139,18 @@
                                                 </div>
                                                 <div class="flex justify-between items-center text-[10px] opacity-70 mt-2 font-mono tracking-tighter">
                                                     <span class="vocal-time">0:00</span>
-                                                    <span class="vocal-duration">0:00</span>
+                                                    <div class="flex items-center gap-2">
+                                                        <span class="vocal-duration">0:00</span>
+                                                    </div>
                                                 </div>
+                                                <!-- Zone de Diagnostic (Visible uniquement en cas d'erreur) -->
+                                                <div class="diagnostic-error hidden mt-2 p-1 bg-red-100 text-red-700 text-[8px] rounded border border-red-200 font-mono break-all"></div>
                                             </div>
-                                            <audio class="hidden-audio hidden" src="<?= BASE_URL ?>/<?= $m['audio_path'] ?>" preload="auto"></audio>
+                                            <audio class="hidden-audio" style="display:none" preload="auto">
+                                                <source src="<?= BASE_URL ?>/<?= $m['audio_path'] ?>" type="audio/webm">
+                                                <source src="<?= BASE_URL ?>/<?= $m['audio_path'] ?>" type="audio/ogg">
+                                                <source src="<?= BASE_URL ?>/<?= $m['audio_path'] ?>" type="audio/mp4">
+                                            </audio>
                                         </div>
                                     </div>
                                 <?php endif; ?>
@@ -228,6 +236,7 @@
     const recordingOverlay = document.getElementById('recording-overlay');
     const inputContainer = document.getElementById('input-container');
     const timerDisplay = document.getElementById('recording-timer');
+    const chatInput = document.getElementById('chat-input');
     const submitBtn = document.getElementById('submit-btn');
 
     function updateTimer() {
@@ -369,6 +378,9 @@
             const durationDisplay = player.querySelector('.vocal-duration');
 
             console.log("Configuring player #" + index, audio.src);
+            
+            // Force load
+            audio.load();
 
             function formatTime(seconds) {
                 if (isNaN(seconds) || seconds === Infinity) return "0:00";
@@ -378,39 +390,63 @@
             }
 
             // Sync total duration
-            audio.addEventListener('loadedmetadata', () => {
-                console.log("Metadata loaded for #" + index + ", duration:", audio.duration);
-                durationDisplay.textContent = formatTime(audio.duration);
-                durationDisplay.classList.remove('text-red-500');
-            });
+            const updateDuration = () => {
+                console.log("Metadata/Canplay for #" + index + ", duration:", audio.duration);
+                if (audio.duration && audio.duration !== Infinity) {
+                    durationDisplay.textContent = formatTime(audio.duration);
+                    durationDisplay.classList.remove('text-red-500');
+                } else if (audio.duration === Infinity) {
+                    // Hack for Chrome/WebM: seek to the end to find duration
+                    console.log("Infinity duration detected, attempting hack...");
+                    audio.currentTime = 1e101;
+                    audio.addEventListener('timeupdate', function getDuration() {
+                        audio.currentTime = 0;
+                        audio.removeEventListener('timeupdate', getDuration);
+                    }, { once: true });
+                }
+            };
+
+            audio.addEventListener('loadedmetadata', updateDuration);
+            audio.addEventListener('canplay', updateDuration);
 
             // Debug listeners
             audio.addEventListener('play', () => console.log("Audio #" + index + " playing"));
             audio.addEventListener('pause', () => console.log("Audio #" + index + " paused"));
             audio.addEventListener('waiting', () => console.log("Audio #" + index + " waiting..."));
+            audio.addEventListener('stalled', () => console.warn("Audio #" + index + " stalled"));
+            
             audio.addEventListener('error', (e) => {
                 const error = audio.error;
                 let msg = "Erreur audio inconnue";
+                let code = 0;
                 if (error) {
+                    code = error.code;
                     switch(error.code) {
                         case 1: msg = "Aborted"; break;
                         case 2: msg = "Network error"; break;
                         case 3: msg = "Decode error"; break;
-                        case 4: msg = "Source not found (404)"; break;
+                        case 4: msg = "404 - Fichier non trouvé"; break;
                     }
                 }
-                console.error("Audio error #" + index + ":", msg, audio.src);
-                durationDisplay.textContent = "Err";
+                console.error("Audio error #" + index + " (Code " + code + "):", msg, audio.src);
+                durationDisplay.textContent = "Err " + code;
                 durationDisplay.classList.add('text-red-500');
+                
+                // Retry logic if source not found but maybe just slow
+                if (error && error.code === 4) {
+                    setTimeout(() => {
+                        if (audio.readyState === 0) audio.load();
+                    }, 3000);
+                }
             });
 
-            if (audio.duration) {
+            if (audio.duration && audio.duration !== Infinity) {
                 durationDisplay.textContent = formatTime(audio.duration);
             }
 
             // Update progress
             audio.addEventListener('timeupdate', () => {
-                if (audio.duration) {
+                if (audio.duration && audio.duration !== Infinity) {
                     const percent = (audio.currentTime / audio.duration) * 100;
                     progressBar.style.width = `${percent}%`;
                 }
@@ -426,49 +462,58 @@
             });
 
             // Play/Pause toggle
-            playBtn.onclick = function(e) {
+            playBtn.onclick = async function(e) {
                 console.log("Play button clicked for #" + index);
+                const diagnostic = player.querySelector('.diagnostic-error');
+                if (diagnostic) {
+                    diagnostic.classList.add('hidden');
+                    diagnostic.textContent = '';
+                }
+
                 e.preventDefault();
                 e.stopPropagation();
 
-                // Stop other players
-                document.querySelectorAll('.hidden-audio').forEach(otherAudio => {
-                    if (otherAudio !== audio && !otherAudio.paused) {
-                        otherAudio.pause();
-                        const otherPlayer = otherAudio.closest('.vocal-player');
-                        if (otherPlayer) {
-                            otherPlayer.querySelector('.play-icon').classList.remove('hidden');
-                            otherPlayer.querySelector('.pause-icon').classList.add('hidden');
-                        }
-                    }
-                });
-
-                if (audio.paused) {
-                    console.log("Attempting to play #" + index);
-                    
-                    // If not loaded at all, force load
-                    if (audio.readyState === 0) {
-                        console.log("ReadyState 0, calling load()");
-                        audio.load();
-                    }
-
-                    const playPromise = audio.play();
-                    
-                    if (playPromise !== undefined) {
-                        playPromise.then(_ => {
-                            console.log("Play success for #" + index);
-                            playIcon.classList.add('hidden');
-                            pauseIcon.classList.remove('hidden');
-                        }).catch(error => {
-                            console.error("Play failed for #" + index + ":", error);
-                            alert("Erreur de lecture : " + error.message);
+                try {
+                    if (audio.paused) {
+                        // Stop other players
+                        document.querySelectorAll('.hidden-audio').forEach(otherAudio => {
+                            if (otherAudio !== audio && !otherAudio.paused) {
+                                otherAudio.pause();
+                                const otherPlayer = otherAudio.closest('.vocal-player');
+                                if (otherPlayer) {
+                                    otherPlayer.querySelector('.play-icon').classList.remove('hidden');
+                                    otherPlayer.querySelector('.pause-icon').classList.add('hidden');
+                                }
+                            }
                         });
+
+                        const playPromise = audio.play();
+                        
+                        if (playPromise !== undefined) {
+                            playPromise.then(() => {
+                                console.log("Play success for #" + index);
+                                playIcon.classList.add('hidden');
+                                pauseIcon.classList.remove('hidden');
+                            }).catch(err => {
+                                console.error("Play failed for #" + index + ":", err);
+                                if (diagnostic) {
+                                    diagnostic.textContent = "Erreur lecture: " + err.message;
+                                    diagnostic.classList.remove('hidden');
+                                }
+                            });
+                        }
+                    } else {
+                        console.log("Pausing #" + index);
+                        audio.pause();
+                        playIcon.classList.remove('hidden');
+                        pauseIcon.classList.add('hidden');
                     }
-                } else {
-                    console.log("Pausing #" + index);
-                    audio.pause();
-                    playIcon.classList.remove('hidden');
-                    pauseIcon.classList.add('hidden');
+                } catch (err) {
+                    console.error("Critical play error #" + index + ":", err);
+                    if (diagnostic) {
+                        diagnostic.textContent = "Erreur critique: " + err.name;
+                        diagnostic.classList.remove('hidden');
+                    }
                 }
             };
 
