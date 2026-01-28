@@ -117,4 +117,20 @@ $router->add('POST', 'import/upload', 'ImportController', 'upload');
 $router->add('GET', 'export/excel', 'ExportController', 'excel');
 $router->add('GET', 'export/pdf', 'ExportController', 'pdf');
 
+// Déclarations de Paiement
+$router->add('GET', 'declarations', 'DeclarationController', 'index');
+$router->add('GET', 'declarations/submit', 'DeclarationController', 'submit');
+$router->add('POST', 'declarations/store', 'DeclarationController', 'store');
+$router->add('GET', 'declarations/show', 'DeclarationController', 'show');
+$router->add('POST', 'declarations/message', 'DeclarationController', 'sendMessage');
+$router->add('GET', 'declarations/admin', 'DeclarationController', 'adminList');
+$router->add('POST', 'declarations/validate', 'DeclarationController', 'validate');
+$router->add('POST', 'declarations/reject', 'DeclarationController', 'reject');
+
+// Support / Chat Global
+$router->add('GET', 'support', 'SupportController', 'index');
+$router->add('GET', 'support/admin', 'SupportController', 'adminList');
+$router->add('GET', 'support/view', 'SupportController', 'view');
+$router->add('POST', 'support/send', 'SupportController', 'send');
+
 return $router;

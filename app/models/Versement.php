@@ -103,6 +103,16 @@ class Versement extends Model
     }
 
     /**
+     * Vérifier si un mois est déjà payé
+     */
+    public function isMonthPaid(int $membreId, string $mois, int $annee): bool
+    {
+        $sql = "SELECT 1 FROM {$this->table} WHERE membre_id = ? AND mois = ? AND annee = ? AND statut = 'PAYE' LIMIT 1";
+        $result = $this->db->fetchOne($sql, [$membreId, $mois, $annee]);
+        return $result !== null;
+    }
+
+    /**
      * Obtenir le total versé par un membre
      */
     public function getTotalVerse(int $membreId): float

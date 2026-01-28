@@ -50,27 +50,43 @@
                 <div class="flex justify-between h-16">
                     <div class="flex">
                         <div class="flex-shrink-0 flex items-center">
-                            <h1 class="text-2xl font-semibold text-gray-900 dark:text-white">SVC-UJDS</h1>
+                            <h1 class="text-2xl font-black tracking-tight text-gray-950 dark:text-white bg-clip-text text-transparent bg-gradient-to-r from-gray-900 via-gray-700 to-gray-900 dark:from-white dark:via-gray-400 dark:to-white">
+                                SVC-UJDS
+                            </h1>
                         </div>
-                        <div class="hidden md:ml-6 md:flex md:space-x-8">
+                        <div class="hidden md:ml-8 md:flex md:space-x-4">
                             <!-- Dashboard Link -->
-                            <a href="<?= BASE_URL ?>/dashboard" class="border-transparent text-gray-500 dark:text-gray-400 hover:border-gray-300 dark:hover:border-gray-600 hover:text-gray-700 dark:hover:text-gray-200 inline-flex items-center px-1 pt-1 border-b-2 text-sm font-medium transition">
+                            <a href="<?= BASE_URL ?>/dashboard" class="border-transparent text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white px-3 py-2 rounded-xl text-sm font-semibold transition-all hover:bg-gray-50 dark:hover:bg-gray-800 flex items-center">
                                 <?= ($_SESSION['user_role'] === 'membre') ? 'Mon Espace' : 'Dashboard' ?>
                             </a>
                             
                             <!-- Admin/Comptable Links Only -->
                             <?php if (in_array($_SESSION['user_role'], ['admin', 'comptable'])): ?>
-                                <a href="<?= BASE_URL ?>/membres" class="border-transparent text-gray-500 dark:text-gray-400 hover:border-gray-300 dark:hover:border-gray-600 hover:text-gray-700 dark:hover:text-gray-200 inline-flex items-center px-1 pt-1 border-b-2 text-sm font-medium transition">
+                                <a href="<?= BASE_URL ?>/membres" class="border-transparent text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white px-3 py-2 rounded-xl text-sm font-semibold transition-all hover:bg-gray-50 dark:hover:bg-gray-800 flex items-center">
                                     Membres
                                 </a>
-                                <a href="<?= BASE_URL ?>/versements" class="border-transparent text-gray-500 dark:text-gray-400 hover:border-gray-300 dark:hover:border-gray-600 hover:text-gray-700 dark:hover:text-gray-200 inline-flex items-center px-1 pt-1 border-b-2 text-sm font-medium transition">
+                                <a href="<?= BASE_URL ?>/versements" class="border-transparent text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white px-3 py-2 rounded-xl text-sm font-semibold transition-all hover:bg-gray-50 dark:hover:bg-gray-800 flex items-center">
                                     Versements
+                                </a>
+                                <a href="<?= BASE_URL ?>/declarations/admin" class="border-transparent text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white px-3 py-2 rounded-xl text-sm font-semibold transition-all hover:bg-gray-50 dark:hover:bg-gray-800 flex items-center">
+                                    Déclarations
+                                </a>
+                                <a href="<?= BASE_URL ?>/support/admin" class="hidden lg:flex border-transparent text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white px-3 py-2 rounded-xl text-sm font-semibold transition-all hover:bg-gray-50 dark:hover:bg-gray-800 items-center">
+                                    Support
+                                </a>
+                            <?php else: ?>
+                                <a href="<?= BASE_URL ?>/declarations" class="border-transparent text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white px-3 py-2 rounded-xl text-sm font-semibold transition-all hover:bg-gray-50 dark:hover:bg-gray-800 flex items-center">
+                                    Mes Déclarations
+                                </a>
+                                <a href="<?= BASE_URL ?>/support" class="hidden lg:flex border-transparent text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white px-3 py-2 rounded-xl text-sm font-semibold transition-all hover:bg-gray-50 dark:hover:bg-gray-800 items-center">
+                                    Support
                                 </a>
                             <?php endif; ?>
                         </div>
                     </div>
                     <div class="flex items-center">
-                        <div class="hidden md:flex md:items-center">
+                        <!-- Desktop: Full layout (lg and above) -->
+                        <div class="hidden lg:flex lg:items-center">
                             <!-- Dark Mode Toggle -->
                             <button id="theme-toggle" class="p-2 mr-4 text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200 focus:outline-none transition-colors" title="Changer le thème">
                                 <svg id="theme-toggle-dark-icon" class="hidden w-5 h-5" fill="currentColor" viewBox="0 0 20 20"><path d="M17.293 13.293A8 8 0 016.707 2.707a8.001 8.001 0 1010.586 10.586z"></path></svg>
@@ -89,10 +105,45 @@
                                 </a>
                             </div>
                         </div>
-                        
+
+                        <!-- Tablet: Dropdown menu (md to lg) -->
+                        <div class="hidden md:flex lg:hidden items-center relative">
+                            <button id="user-menu-button" class="flex items-center gap-2 px-3 py-2 rounded-xl hover:bg-gray-100 dark:hover:bg-gray-800 transition-all">
+                                <div class="w-8 h-8 rounded-xl bg-gray-200 dark:bg-gray-800 flex items-center justify-center text-gray-700 dark:text-gray-300 font-bold text-sm">
+                                    <?= strtoupper(substr($_SESSION['username'], 0, 1)) ?>
+                                </div>
+                                <svg class="w-4 h-4 text-gray-500 dark:text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path></svg>
+                            </button>
+                            
+                            <!-- Dropdown Menu -->
+                            <div id="user-dropdown" class="hidden absolute right-0 top-full mt-2 w-56 bg-white dark:bg-gray-900 rounded-2xl shadow-xl border border-gray-200 dark:border-gray-800 py-2 z-50">
+                                <div class="px-4 py-3 border-b border-gray-100 dark:border-gray-800">
+                                    <p class="text-sm font-bold text-gray-900 dark:text-white"><?= htmlspecialchars($_SESSION['username']) ?></p>
+                                    <p class="text-xs text-gray-500 dark:text-gray-400 mt-0.5"><?= htmlspecialchars($_SESSION['user_role']) ?></p>
+                                </div>
+                                <button id="theme-toggle-dropdown" class="w-full flex items-center gap-3 px-4 py-3 text-sm font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800 transition">
+                                    <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 20 20"><path d="M17.293 13.293A8 8 0 016.707 2.707a8.001 8.001 0 1010.586 10.586z"></path></svg>
+                                    Mode sombre
+                                </button>
+                                <a href="<?= BASE_URL ?>/auth/changePassword" class="flex items-center gap-3 px-4 py-3 text-sm font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800 transition">
+                                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 7a2 2 0 012 2m4 0a6 6 0 01-7.743 5.743L11 17H9v2H7v2H4a1 1 0 01-1-1v-2.586a1 1 0 01.293-.707l5.964-5.964A6 6 0 1121 9z"></path></svg>
+                                    Mot de passe
+                                </a>
+                                <a href="<?= (in_array($_SESSION['user_role'], ['admin', 'comptable'])) ? BASE_URL . '/support/admin' : BASE_URL . '/support' ?>" class="flex items-center gap-3 px-4 py-3 text-sm font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800 transition">
+                                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 5v-5z"></path></svg>
+                                    Support
+                                </a>
+                                <a href="<?= BASE_URL ?>/logout" class="flex items-center gap-3 px-4 py-3 text-sm font-medium text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20 transition">
+                                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"></path></svg>
+                                    Déconnexion
+                                </a>
+                            </div>
+                        </div>
+
                         <!-- Mobile menu button -->
                         <div class="flex items-center md:hidden">
-                            <button id="mobile-menu-button" type="button" class="inline-flex items-center justify-center p-2 rounded-md text-gray-400 hover:text-gray-500 hover:bg-gray-100 dark:hover:bg-gray-800 focus:outline-none transition">
+                            <button id="mobile-menu-button" type="button" class="inline-flex items-center justify-center p-2 rounded-xl text-gray-500 hover:text-gray-900 hover:bg-gray-100 dark:hover:bg-gray-800 transition-all">
+                                <span class="sr-only">Ouvrir le menu</span>
                                 <svg class="h-6 w-6" stroke="currentColor" fill="none" viewBox="0 0 24 24">
                                     <path id="mobile-menu-icon" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16" />
                                 </svg>
@@ -103,42 +154,59 @@
             </div>
 
             <!-- Mobile menu, show/hide based on menu state. -->
-            <div id="mobile-menu" class="hidden md:hidden bg-white dark:bg-gray-900 border-b border-gray-200 dark:border-gray-800 pb-4 px-4 transition-colors">
-                <div class="pt-2 pb-3 space-y-1">
-                    <a href="<?= BASE_URL ?>/dashboard" class="block pl-3 pr-4 py-2 border-l-4 border-transparent text-base font-medium text-gray-600 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-800 hover:border-gray-300 transition">
+            <div id="mobile-menu" class="hidden md:hidden bg-white/80 dark:bg-gray-900/80 backdrop-blur-xl border-b border-gray-200 dark:border-gray-800 overflow-hidden transition-all duration-300 ease-in-out max-h-0">
+                <div class="px-4 pt-2 pb-6 space-y-2">
+                    <a href="<?= BASE_URL ?>/dashboard" class="flex items-center px-4 py-3 text-base font-bold text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white hover:bg-gray-50 dark:hover:bg-gray-800/50 rounded-2xl transition-all">
                         Dashboard
                     </a>
                     <?php if (in_array($_SESSION['user_role'], ['admin', 'comptable'])): ?>
-                        <a href="<?= BASE_URL ?>/membres" class="block pl-3 pr-4 py-2 border-l-4 border-transparent text-base font-medium text-gray-600 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-800 hover:border-gray-300 transition">
+                        <a href="<?= BASE_URL ?>/membres" class="flex items-center px-4 py-3 text-base font-bold text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white hover:bg-gray-50 dark:hover:bg-gray-800/50 rounded-2xl transition-all">
                             Membres
                         </a>
-                        <a href="<?= BASE_URL ?>/versements" class="block pl-3 pr-4 py-2 border-l-4 border-transparent text-base font-medium text-gray-600 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-800 hover:border-gray-300 transition">
+                        <a href="<?= BASE_URL ?>/versements" class="flex items-center px-4 py-3 text-base font-bold text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white hover:bg-gray-50 dark:hover:bg-gray-800/50 rounded-2xl transition-all">
                             Versements
                         </a>
+                        <a href="<?= BASE_URL ?>/declarations/admin" class="flex items-center px-4 py-3 text-base font-bold text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white hover:bg-gray-50 dark:hover:bg-gray-800/50 rounded-2xl transition-all">
+                            Déclarations
+                        </a>
+                        <a href="<?= BASE_URL ?>/support/admin" class="flex items-center px-4 py-3 text-base font-bold text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white hover:bg-gray-50 dark:hover:bg-gray-800/50 rounded-2xl transition-all">
+                            Support
+                        </a>
+                    <?php else: ?>
+                        <a href="<?= BASE_URL ?>/declarations" class="flex items-center px-4 py-3 text-base font-bold text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white hover:bg-gray-50 dark:hover:bg-gray-800/50 rounded-2xl transition-all">
+                            Mes Déclarations
+                        </a>
+                        <a href="<?= BASE_URL ?>/support" class="flex items-center px-4 py-3 text-base font-bold text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white hover:bg-gray-50 dark:hover:bg-gray-800/50 rounded-2xl transition-all">
+                            Support
+                        </a>
                     <?php endif; ?>
-                </div>
-                <div class="pt-4 pb-3 border-t border-gray-200 dark:border-gray-800">
-                    <div class="flex items-center px-4">
-                        <div class="flex-shrink-0">
-                            <div class="h-10 w-10 rounded-full bg-gray-200 dark:bg-gray-800 flex items-center justify-center text-gray-600 dark:text-gray-400 font-bold">
-                                <?= strtoupper(substr($_SESSION['username'], 0, 1)) ?>
+                    
+                    <div class="pt-4 mt-4 border-t border-gray-100 dark:border-gray-800">
+                        <div class="flex items-center px-4 mb-4">
+                            <div class="flex-shrink-0">
+                                <div class="h-10 w-10 rounded-2xl bg-gradient-to-br from-gray-100 to-gray-200 dark:from-gray-800 dark:to-gray-700 flex items-center justify-center text-gray-900 dark:text-white font-black shadow-sm">
+                                    <?= strtoupper(substr($_SESSION['username'], 0, 1)) ?>
+                                </div>
+                            </div>
+                            <div class="ml-3">
+                                <div class="text-base font-black text-gray-900 dark:text-white"><?= htmlspecialchars($_SESSION['username']) ?></div>
+                                <div class="text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-widest"><?= htmlspecialchars($_SESSION['user_role']) ?></div>
                             </div>
                         </div>
-                        <div class="ml-3">
-                            <div class="text-base font-medium text-gray-800 dark:text-white"><?= htmlspecialchars($_SESSION['username']) ?></div>
-                            <div class="text-sm font-medium text-gray-500 dark:text-gray-400"><?= htmlspecialchars($_SESSION['user_role']) ?></div>
+                        <div class="space-y-1">
+                            <button id="theme-toggle-mobile" class="w-full flex items-center gap-3 px-4 py-3 text-sm font-bold text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white hover:bg-gray-50 dark:hover:bg-gray-800/50 rounded-2xl transition-all">
+                                <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 20 20"><path d="M17.293 13.293A8 8 0 016.707 2.707a8.001 8.001 0 1010.586 10.586z"></path></svg>
+                                Mode Sombre / Clair
+                            </button>
+                            <a href="<?= BASE_URL ?>/auth/changePassword" class="flex items-center gap-3 px-4 py-3 text-sm font-bold text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white hover:bg-gray-50 dark:hover:bg-gray-800/50 rounded-2xl transition-all">
+                                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 7a2 2 0 012 2m4 0a6 6 0 01-7.743 5.743L11 17H9v2H7v2H4a1 1 0 01-1-1v-2.586a1 1 0 01.293-.707l5.964-5.964A6 6 0 1121 9z"></path></svg>
+                                Changer mot de passe
+                            </a>
+                            <a href="<?= BASE_URL ?>/logout" class="flex items-center gap-3 px-4 py-3 text-sm font-bold text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-2xl transition-all">
+                                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"></path></svg>
+                                Déconnexion
+                            </a>
                         </div>
-                    </div>
-                    <div class="mt-3 space-y-1">
-                        <button id="theme-toggle-mobile" class="w-full text-left block px-4 py-2 text-base font-medium text-gray-500 dark:text-gray-400 hover:text-gray-800 dark:hover:text-white hover:bg-gray-100 dark:hover:bg-gray-800 transition">
-                            Changer le thème
-                        </button>
-                        <a href="<?= BASE_URL ?>/auth/changePassword" class="block px-4 py-2 text-base font-medium text-gray-500 dark:text-gray-400 hover:text-gray-800 dark:hover:text-white hover:bg-gray-100 dark:hover:bg-gray-800 transition">
-                            Changer mot de passe
-                        </a>
-                        <a href="<?= BASE_URL ?>/logout" class="block px-4 py-2 text-base font-medium text-red-600 hover:bg-gray-100 dark:hover:bg-gray-800 transition">
-                            Déconnexion
-                        </a>
                     </div>
                 </div>
             </div>
@@ -210,18 +278,56 @@
         themeToggleBtn.addEventListener('click', toggleTheme);
         if (themeToggleBtnMobile) themeToggleBtnMobile.addEventListener('click', toggleTheme);
 
+        // Tablet user dropdown toggle
+        var userMenuBtn = document.getElementById('user-menu-button');
+        var userDropdown = document.getElementById('user-dropdown');
+        var themeToggleDropdown = document.getElementById('theme-toggle-dropdown');
+
+        if (userMenuBtn && userDropdown) {
+            userMenuBtn.addEventListener('click', function(e) {
+                e.stopPropagation();
+                userDropdown.classList.toggle('hidden');
+            });
+
+            // Close dropdown when clicking outside
+            document.addEventListener('click', function(e) {
+                if (!userDropdown.contains(e.target) && !userMenuBtn.contains(e.target)) {
+                    userDropdown.classList.add('hidden');
+                }
+            });
+
+            // Theme toggle in dropdown
+            if (themeToggleDropdown) {
+                themeToggleDropdown.addEventListener('click', function() {
+                    toggleTheme();
+                    userDropdown.classList.add('hidden');
+                });
+            }
+        }
+
         // Mobile menu toggle
         var mobileMenuBtn = document.getElementById('mobile-menu-button');
         var mobileMenu = document.getElementById('mobile-menu');
         var mobileMenuIcon = document.getElementById('mobile-menu-icon');
 
         mobileMenuBtn.addEventListener('click', function() {
-            mobileMenu.classList.toggle('hidden');
-            // Toggle icon between burger and X
-            if (mobileMenu.classList.contains('hidden')) {
-                mobileMenuIcon.setAttribute('d', 'M4 6h16M4 12h16M4 18h16');
-            } else {
+            const isOpen = !mobileMenu.classList.contains('hidden');
+            
+            if (!isOpen) {
+                // Opening
+                mobileMenu.classList.remove('hidden');
+                mobileMenu.style.maxHeight = '0px';
+                setTimeout(() => {
+                    mobileMenu.style.maxHeight = '500px';
+                }, 10);
                 mobileMenuIcon.setAttribute('d', 'M6 18L18 6M6 6l12 12');
+            } else {
+                // Closing
+                mobileMenu.style.maxHeight = '0px';
+                mobileMenuIcon.setAttribute('d', 'M4 6h16M4 12h16M4 18h16');
+                setTimeout(() => {
+                    mobileMenu.classList.add('hidden');
+                }, 300);
             }
         });
     </script>

@@ -70,16 +70,16 @@
         <table class="min-w-full divide-y divide-gray-100 dark:divide-gray-800">
             <thead>
                 <tr class="bg-gray-50/50 dark:bg-gray-900/50">
-                    <th class="px-8 py-5 text-left text-xs font-bold text-gray-500 dark:text-gray-500 uppercase tracking-widest">Membre</th>
-                    <th class="px-8 py-5 text-left text-xs font-bold text-gray-500 dark:text-gray-500 uppercase tracking-widest">Contact / Localité</th>
+                    <th class="px-4 md:px-8 py-5 text-left text-xs font-bold text-gray-500 dark:text-gray-500 uppercase tracking-widest">Membre</th>
+                    <th class="hidden md:table-cell px-8 py-5 text-left text-xs font-bold text-gray-500 dark:text-gray-500 uppercase tracking-widest">Contact / Localité</th>
                     <?php if (in_array($currentUser['role'], ['admin', 'comptable'])): ?>
-                        <th class="px-8 py-5 text-left text-xs font-bold text-gray-500 dark:text-gray-500 uppercase tracking-widest text-center">Mt Mensuel</th>
+                        <th class="hidden lg:table-cell px-8 py-5 text-left text-xs font-bold text-gray-500 dark:text-gray-500 uppercase tracking-widest text-center">Mt Mensuel</th>
                     <?php endif; ?>
-                    <th class="px-8 py-5 text-left text-xs font-bold text-gray-500 dark:text-gray-500 uppercase tracking-widest text-center">Statut</th>
+                    <th class="px-4 md:px-8 py-5 text-left text-xs font-bold text-gray-500 dark:text-gray-500 uppercase tracking-widest text-center">Statut</th>
                     <?php if (in_array($currentUser['role'], ['admin', 'comptable'])): ?>
-                        <th class="px-8 py-5 text-left text-xs font-bold text-gray-500 dark:text-gray-500 uppercase tracking-widest text-center">Finance</th>
+                        <th class="hidden sm:table-cell px-8 py-5 text-left text-xs font-bold text-gray-500 dark:text-gray-500 uppercase tracking-widest text-center">Finance</th>
                     <?php endif; ?>
-                    <th class="px-8 py-5 text-right text-xs font-bold text-gray-500 dark:text-gray-500 uppercase tracking-widest">Actions</th>
+                    <th class="px-4 md:px-8 py-5 text-right text-xs font-bold text-gray-500 dark:text-gray-500 uppercase tracking-widest">Actions</th>
                 </tr>
             </thead>
             <tbody class="divide-y divide-gray-50 dark:divide-gray-900">
@@ -95,32 +95,34 @@
                 <?php else: ?>
                     <?php foreach ($membres as $membre): ?>
                         <tr class="hover:bg-gray-50/50 dark:hover:bg-gray-900/50 transition-colors group">
-                            <td class="px-8 py-5">
-                                <div class="flex items-center gap-4">
-                                    <div class="w-12 h-12 rounded-2xl bg-gray-100 dark:bg-gray-800 flex items-center justify-center text-gray-600 dark:text-gray-400 font-bold text-xl transition-all group-hover:bg-blue-600 group-hover:text-white shadow-sm">
+                            <td class="px-4 md:px-8 py-5">
+                                <div class="flex items-center gap-3">
+                                    <div class="flex-shrink-0 w-10 h-10 md:w-12 md:h-12 rounded-2xl bg-gray-100 dark:bg-gray-800 flex items-center justify-center text-gray-600 dark:text-gray-400 font-bold text-lg md:text-xl transition-all group-hover:bg-blue-600 group-hover:text-white shadow-sm">
                                         <?= strtoupper(substr($membre['designation'], 0, 1)) ?>
                                     </div>
-                                    <div>
-                                        <p class="font-bold text-gray-900 dark:text-white group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors"><?= htmlspecialchars($membre['designation']) ?></p>
-                                        <div class="flex items-center gap-2 mt-0.5">
-                                            <span class="text-[10px] font-bold text-gray-400 dark:text-gray-500 uppercase tracking-widest"><?= htmlspecialchars($membre['code']) ?></span>
+                                    <div class="min-w-0">
+                                        <p class="font-bold text-sm md:text-base text-gray-900 dark:text-white group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors truncate"><?= htmlspecialchars($membre['designation']) ?></p>
+                                        <div class="flex flex-wrap items-center gap-1 md:gap-2 mt-0.5">
+                                            <span class="text-[9px] md:text-[10px] font-bold text-gray-400 dark:text-gray-500 uppercase tracking-widest"><?= htmlspecialchars($membre['code']) ?></span>
                                             <?php if ($membre['titre']): ?>
-                                                <span class="px-1.5 py-0.5 bg-gray-100 dark:bg-gray-800 text-[10px] font-bold text-gray-500 rounded uppercase"><?= htmlspecialchars($membre['titre']) ?></span>
+                                                <span class="px-1.5 py-0.5 bg-gray-100 dark:bg-gray-800 text-[9px] md:text-[10px] font-bold text-gray-500 rounded uppercase"><?= htmlspecialchars($membre['titre']) ?></span>
                                             <?php endif; ?>
                                         </div>
+                                        <!-- Mobile only: Show contact info -->
+                                        <p class="md:hidden text-xs font-semibold text-gray-600 dark:text-gray-400 mt-1"><?= htmlspecialchars($membre['telephone'] ?? '-') ?></p>
                                     </div>
                                 </div>
                             </td>
-                            <td class="px-8 py-5">
+                            <td class="hidden md:table-cell px-8 py-5">
                                 <p class="text-sm font-bold text-gray-900 dark:text-gray-300"><?= htmlspecialchars($membre['telephone'] ?? '-') ?></p>
                                 <p class="text-xs font-semibold text-gray-450 dark:text-gray-500"><?= htmlspecialchars($membre['misside'] ?? '-') ?></p>
                             </td>
                             <?php if (in_array($currentUser['role'], ['admin', 'comptable'])): ?>
-                                <td class="px-8 py-5 text-center text-sm font-bold text-gray-900 dark:text-gray-300">
+                                <td class="hidden lg:table-cell px-8 py-5 text-center text-sm font-bold text-gray-900 dark:text-gray-300">
                                     <?= number_format($membre['montant_mensuel'], 0, ',', ' ') ?> <span class="text-[10px] opacity-50 ml-0.5">FCFA</span>
                                 </td>
                             <?php endif; ?>
-                            <td class="px-8 py-5 text-center">
+                            <td class="px-4 md:px-8 py-5 text-center">
                                 <?php
                                 $badgeStyles = match($membre['statut']) {
                                     'ACTIF' => 'bg-emerald-100 text-emerald-800 dark:bg-emerald-900/30 dark:text-emerald-400 border-emerald-200/50',
@@ -129,12 +131,12 @@
                                     default => 'bg-gray-100 text-gray-800 dark:bg-gray-800 dark:text-gray-300'
                                 };
                                 ?>
-                                <span class="inline-flex items-center px-3 py-1.5 text-[10px] font-black <?= $badgeStyles ?> rounded-lg border uppercase tracking-tighter">
+                                <span class="inline-flex items-center px-2 md:px-3 py-1 md:py-1.5 text-[9px] md:text-[10px] font-black <?= $badgeStyles ?> rounded-lg border uppercase tracking-tighter">
                                     <?= htmlspecialchars($membre['statut']) ?>
                                 </span>
                             </td>
                             <?php if (in_array($currentUser['role'], ['admin', 'comptable'])): ?>
-                                <td class="px-8 py-5 text-center">
+                                <td class="hidden sm:table-cell px-8 py-5 text-center">
                                     <?php if ($membre['montant_du'] > 0): ?>
                                         <div class="flex flex-col items-center">
                                             <span class="text-sm font-black text-rose-600 dark:text-rose-400"><?= number_format($membre['montant_du'], 0, ',', ' ') ?></span>
@@ -145,13 +147,15 @@
                                     <?php endif; ?>
                                 </td>
                             <?php endif; ?>
-                            <td class="px-8 py-5 text-right flex items-center justify-end gap-2">
-                                <a href="<?= BASE_URL ?>/versements?membre_id=<?= $membre['id'] ?>" class="inline-flex items-center justify-center w-10 h-10 bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 text-gray-600 dark:text-gray-400 rounded-xl hover:bg-gray-50 dark:hover:bg-gray-800 hover:text-emerald-600 dark:hover:text-emerald-400 transition-all shadow-sm" title="Historique des paiements">
-                                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4"></path></svg>
-                                </a>
-                                <a href="<?= BASE_URL ?>/membres/show?id=<?= $membre['id'] ?>" class="inline-flex items-center justify-center w-10 h-10 bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 text-gray-600 dark:text-gray-400 rounded-xl hover:bg-gray-50 dark:hover:bg-gray-800 hover:text-blue-600 dark:hover:text-blue-400 transition-all shadow-sm" title="Détails du membre">
-                                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path></svg>
-                                </a>
+                            <td class="px-4 md:px-8 py-5 text-right">
+                                <div class="flex items-center justify-end gap-2">
+                                    <a href="<?= BASE_URL ?>/versements?membre_id=<?= $membre['id'] ?>" class="inline-flex items-center justify-center w-9 h-9 md:w-10 md:h-10 bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 text-gray-600 dark:text-gray-400 rounded-xl hover:bg-gray-50 dark:hover:bg-gray-800 hover:text-emerald-600 dark:hover:text-emerald-400 transition-all shadow-sm" title="Historique des paiements">
+                                        <svg class="w-4 h-4 md:w-5 md:h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4"></path></svg>
+                                    </a>
+                                    <a href="<?= BASE_URL ?>/membres/show?id=<?= $membre['id'] ?>" class="inline-flex items-center justify-center w-9 h-9 md:w-10 md:h-10 bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 text-gray-600 dark:text-gray-400 rounded-xl hover:bg-gray-50 dark:hover:bg-gray-800 hover:text-blue-600 dark:hover:text-blue-400 transition-all shadow-sm" title="Détails du membre">
+                                        <svg class="w-4 h-4 md:w-5 md:h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path></svg>
+                                    </a>
+                                </div>
                             </td>
                         </tr>
                     <?php endforeach; ?>

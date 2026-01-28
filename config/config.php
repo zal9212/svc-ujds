@@ -17,7 +17,19 @@ define('DB_DSN', 'mysql:host=' . DB_HOST . ';dbname=' . DB_NAME . ';charset=' . 
 // Configuration de l'application
 define('APP_NAME', 'Système de Gestion des Versements');
 define('APP_VERSION', '1.0.0');
-define('BASE_URL', 'http://localhost/svc-ujds/public');
+
+// Détection dynamique de l'URL de base
+$protocol = (isset($_SERVER['HTTPS']) && $_SERVER['HTTPS'] === 'on') ? 'https' : 'http';
+$host = $_SERVER['HTTP_HOST'] ?? 'localhost';
+$scriptName = str_replace('\\', '/', dirname($_SERVER['SCRIPT_NAME'] ?? ''));
+$baseUrl = $protocol . '://' . $host . rtrim($scriptName, '/');
+
+// On s'assure que BASE_URL pointe vers le dossier public si on n'y est pas déjà
+if (!str_ends_with($baseUrl, '/public')) {
+    $baseUrl .= '/public';
+}
+
+define('BASE_URL', $baseUrl);
 define('BASE_PATH', __DIR__ . '/..');
 
 // Chemins

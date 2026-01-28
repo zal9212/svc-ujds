@@ -5,39 +5,68 @@
             <h1 class="text-2xl md:text-3xl font-bold text-gray-900 dark:text-white transition-colors"><?= htmlspecialchars($membre['designation']) ?></h1>
             <p class="text-gray-600 dark:text-gray-400 mt-1 transition-colors font-medium"><?= htmlspecialchars($membre['code']) ?></p>
         </div>
-        <div class="flex flex-wrap items-center gap-3">
+        <div class="flex flex-wrap items-center gap-3 w-full md:w-auto">
             <?php if (in_array($currentUser['role'], ['admin'])): ?>
-                <form action="<?= BASE_URL ?>/membres/delete" method="POST" onsubmit="return confirm('Êtes-vous sûr de vouloir supprimer ce membre ? Cette action est irréversible et supprimera tout l\'historique associé.');" class="flex-1 sm:flex-none">
+                <form action="<?= BASE_URL ?>/membres/delete" method="POST" onsubmit="return confirm('Êtes-vous sûr de vouloir supprimer ce membre ? Cette action est irréversible et supprimera tout l\'historique associé.');" class="flex-1 min-w-[120px]">
                     <input type="hidden" name="<?= CSRF_TOKEN_NAME ?>" value="<?= Security::generateCsrfToken() ?>">
                     <input type="hidden" name="id" value="<?= (int)$membre['id'] ?>">
-                    <button type="submit" class="w-full bg-red-50 dark:bg-red-900/20 text-red-600 dark:text-red-400 px-6 py-3 rounded-2xl border border-red-100 dark:border-red-800 hover:bg-red-100 dark:hover:bg-red-900/40 transition font-medium shadow-sm">
+                    <button type="submit" class="w-full bg-red-50 dark:bg-red-900/20 text-red-600 dark:text-red-400 px-4 py-3 rounded-2xl border border-red-100 dark:border-red-800 hover:bg-red-100 dark:hover:bg-red-900/40 transition font-bold shadow-sm text-sm">
                         Supprimer
                     </button>
                 </form>
             <?php endif; ?>
             
             <?php if (in_array($currentUser['role'], ['admin', 'comptable'])): ?>
-                <a href="<?= BASE_URL ?>/membres/edit?id=<?= (int)$membre['id'] ?>" class="flex-1 sm:flex-none text-center bg-white dark:bg-gray-900 text-gray-900 dark:text-white px-6 py-3 rounded-2xl border border-gray-300 dark:border-gray-700 hover:border-gray-400 dark:hover:border-gray-600 transition font-medium shadow-sm">
+                <a href="<?= BASE_URL ?>/membres/edit?id=<?= (int)$membre['id'] ?>" class="flex-1 min-w-[120px] text-center bg-white dark:bg-gray-900 text-gray-900 dark:text-white px-4 py-3 rounded-2xl border border-gray-300 dark:border-gray-700 hover:border-gray-400 dark:hover:border-gray-600 transition font-bold shadow-sm text-sm">
                     Modifier
                 </a>
             <?php endif; ?>
 
             <?php if ($currentUser['role'] === 'membre'): ?>
-                <a href="<?= BASE_URL ?>/auth/changePassword" class="flex-1 sm:flex-none text-center bg-blue-50 dark:bg-blue-900/20 text-blue-600 dark:text-blue-400 px-6 py-3 rounded-2xl border border-blue-100 dark:border-blue-800 hover:bg-blue-100 dark:hover:bg-red-900/40 transition font-medium shadow-sm">
-                    Mot de passe
+                <a href="<?= BASE_URL ?>/auth/changePassword" class="flex-1 min-w-[120px] text-center bg-blue-50 dark:bg-blue-900/20 text-blue-600 dark:text-blue-400 px-4 py-3 rounded-2xl border border-blue-100 dark:border-blue-800 hover:bg-blue-100 dark:hover:bg-red-900/40 transition font-bold shadow-sm text-sm">
+                    Sécurité
                 </a>
             <?php endif; ?>
 
-            <a href="<?= BASE_URL ?>/export/pdf?type=fiche-membre&id=<?= (int)$membre['id'] ?>" class="flex-1 sm:flex-none text-center bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 px-6 py-3 rounded-2xl border border-slate-200 dark:border-slate-700 hover:bg-slate-200 dark:hover:bg-slate-700 transition font-medium shadow-sm flex items-center justify-center gap-2">
-                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path></svg>
-                Fiche PDF
+            <a href="<?= BASE_URL ?>/export/pdf?type=fiche-membre&id=<?= (int)$membre['id'] ?>" class="flex-1 min-w-[120px] text-center bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 px-4 py-3 rounded-2xl border border-slate-200 dark:border-slate-700 hover:bg-slate-200 dark:hover:bg-slate-700 transition font-bold shadow-sm flex items-center justify-center gap-2 text-sm">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path></svg>
+                PDF
             </a>
 
-            <a href="<?= BASE_URL ?>/membres" class="flex-1 sm:flex-none text-center bg-gray-200 dark:bg-gray-800 text-gray-700 dark:text-gray-300 px-6 py-3 rounded-2xl hover:bg-gray-300 dark:hover:bg-gray-700 transition font-medium">
-                ← Retour
+            <!-- NEW: Support Chat Button -->
+            <a href="<?= (in_array($currentUser['role'], ['admin', 'comptable'])) ? BASE_URL . '/support/view?membre_id=' . $membre['id'] : BASE_URL . '/support' ?>" 
+               class="flex-1 min-w-[120px] text-center bg-gray-900 dark:bg-white text-white dark:text-gray-900 px-4 py-3 rounded-2xl hover:bg-black dark:hover:bg-gray-200 transition font-bold shadow-lg flex items-center justify-center gap-2 group text-sm">
+                Chat
+            </a>
+
+            <?php 
+                $backLink = (in_array($currentUser['role'], ['admin', 'comptable'])) ? BASE_URL . '/membres' : BASE_URL . '/';
+            ?>
+            <a href="<?= $backLink ?>" class="flex-none text-center bg-gray-200 dark:bg-gray-800 text-gray-700 dark:text-gray-300 px-5 py-3 rounded-2xl hover:bg-gray-300 dark:hover:bg-gray-700 transition font-bold text-sm">
+                ←
             </a>
         </div>
     </div>
+
+    <!-- NEW: Payment Declaration Link for Members -->
+    <?php if ($currentUser['role'] === 'membre'): ?>
+    <div class="mt-6">
+        <a href="<?= BASE_URL ?>/declarations" class="flex items-center justify-between p-4 bg-orange-50 dark:bg-orange-900/10 border border-orange-100 dark:border-orange-800 rounded-3xl group hover:shadow-md transition-all">
+            <div class="flex items-center gap-4">
+                <div class="p-3 bg-orange-100 dark:bg-orange-900/40 rounded-2xl text-orange-600 dark:text-orange-400 group-hover:scale-110 transition-transform">
+                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"></path></svg>
+                </div>
+                <div>
+                    <h3 class="font-bold text-orange-900 dark:text-orange-300">Portail de Déclaration de Paiement</h3>
+                    <p class="text-sm text-orange-700 dark:text-orange-400 opacity-80">Déclarez vos paiements externes ici pour mise à jour de votre solde.</p>
+                </div>
+            </div>
+            <div class="text-orange-600 dark:text-orange-400 font-black">
+                DÉCLARER →
+            </div>
+        </a>
+    </div>
+    <?php endif; ?>
 </div>
 
 <!-- Years Navigation (Dynamic List) -->
@@ -55,7 +84,7 @@
 <?php if (in_array($currentUser['role'], ['admin', 'comptable']) || (isset($_SESSION['user_id']) && $membre['user_id'] == $_SESSION['user_id'])): ?>
     <div class="mb-8 overflow-hidden">
         <h2 class="text-sm font-bold text-gray-400 dark:text-gray-500 uppercase tracking-widest mb-4">Résumé Global (Toutes Années)</h2>
-        <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
+        <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4">
             <div class="bg-gray-900 dark:bg-white rounded-2xl p-6 shadow-lg transform hover:scale-[1.02] transition-all duration-300">
                 <p class="text-xs font-medium text-gray-400 dark:text-gray-500 mb-1 uppercase">Total Versé</p>
                 <p class="text-2xl font-bold text-white dark:text-gray-900"><?= number_format($globalSituation['total_verse'], 0, ',', ' ') ?> <span class="text-xs font-normal opacity-70">FCFA</span></p>
@@ -138,7 +167,7 @@
 
 <!-- Summary Cards (Year Specific) -->
 <?php if (in_array($currentUser['role'], ['admin', 'comptable']) || $membre['user_id'] == $currentUser['id']): ?>
-    <div class="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
+    <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-6 mb-8">
         <div class="bg-white dark:bg-gray-900 rounded-2xl border border-gray-200 dark:border-gray-800 p-6 transition-colors">
             <p class="text-sm font-medium text-gray-600 dark:text-gray-400 mb-2 transition-colors">Mois en Retard (<?= $annee ?>)</p>
             <p class="text-3xl font-semibold text-orange-600 dark:text-orange-400 transition-colors"><?= $membre['mois_retard_annee'] ?></p>
@@ -235,10 +264,17 @@
                 <?php else: ?>
                     <div class="space-y-3">
                         <?php foreach ($lists['avances'] as $avance): ?>
-                            <div class="border-b border-gray-100 dark:border-gray-800 pb-3 last:border-0 transition-colors group">
+                                    <div class="border-b border-gray-100 dark:border-gray-800 pb-3 last:border-0 transition-colors group">
                                 <div class="flex items-center justify-between">
                                     <div>
-                                        <p class="font-medium text-gray-900 dark:text-white transition-colors"><?= number_format($avance['montant'], 0, ',', ' ') ?> FCFA</p>
+                                        <div class="flex items-center gap-2">
+                                            <p class="font-medium text-gray-900 dark:text-white transition-colors"><?= number_format($avance['montant'], 0, ',', ' ') ?> FCFA</p>
+                                            <?php if (!empty($avance['declaration_id'])): ?>
+                                                <a href="<?= BASE_URL ?>/declarations/show?id=<?= $avance['declaration_id'] ?>" class="text-[9px] font-black bg-orange-100 text-orange-700 px-1.5 py-0.5 rounded uppercase hover:bg-orange-200 transition-colors">
+                                                    Via Décl. #<?= $avance['declaration_id'] ?>
+                                                </a>
+                                            <?php endif; ?>
+                                        </div>
                                         <p class="text-xs text-gray-600 dark:text-gray-400 transition-colors"><?= date('d/m/Y', strtotime($avance['date_avance'])) ?></p>
                                     </div>
                                     <?php if (in_array($currentUser['role'], ['admin'])): ?>
@@ -284,7 +320,14 @@
                             <div class="border-b border-gray-100 dark:border-gray-800 pb-3 last:border-0 transition-colors group">
                                 <div class="flex items-center justify-between">
                                     <div>
-                                        <p class="font-medium text-gray-900 dark:text-white transition-colors"><?= number_format($avance['montant'], 0, ',', ' ') ?> FCFA</p>
+                                        <div class="flex items-center gap-2">
+                                            <p class="font-medium text-gray-900 dark:text-white transition-colors"><?= number_format($avance['montant'], 0, ',', ' ') ?> FCFA</p>
+                                            <?php if (!empty($avance['declaration_id'])): ?>
+                                                <a href="<?= BASE_URL ?>/declarations/show?id=<?= $avance['declaration_id'] ?>" class="text-[9px] font-black bg-orange-100 text-orange-700 px-1.5 py-0.5 rounded uppercase hover:bg-orange-200 transition-colors">
+                                                    Via Décl. #<?= $avance['declaration_id'] ?>
+                                                </a>
+                                            <?php endif; ?>
+                                        </div>
                                         <p class="text-xs text-gray-600 dark:text-gray-400 transition-colors">
                                             le <?= date('d/m/Y', strtotime($avance['date_avance'])) ?>
                                             <?php if (!empty($avance['date_debut'])): ?>
@@ -407,10 +450,10 @@
                     <h2 class="text-xl font-semibold text-gray-900 dark:text-white transition-colors">Historique <?= $annee ?></h2>
                     <?php if (in_array($currentUser['role'], ['admin', 'comptable'])): ?>
                         <div class="flex gap-2">
-                            <a href="<?= BASE_URL ?>/versements/create?membre_id=<?= $membre['id'] ?>&annee=<?= $annee ?>&mode=amende" class="bg-red-50 dark:bg-red-900/20 text-red-600 dark:text-red-400 px-4 py-2 rounded-2xl border border-red-100 dark:border-red-800 hover:bg-red-100 dark:hover:bg-red-900/40 transition text-sm font-medium">
+                            <a href="<?= BASE_URL ?>/versements/create?membre_id=<?= $membre['id'] ?>&annee=<?= $annee ?>&mode=amende" class="bg-red-50 dark:bg-red-900/20 text-red-600 dark:text-red-400 px-3 py-1.5 rounded-xl border border-red-100 dark:border-red-800 hover:bg-red-100 dark:hover:bg-red-900/40 transition text-xs font-semibold">
                                 + Gérer Amendes
                             </a>
-                            <a href="<?= BASE_URL ?>/versements/create?membre_id=<?= $membre['id'] ?>&annee=<?= $annee ?>&mode=versement" class="bg-gray-900 dark:bg-white dark:text-gray-900 text-white px-4 py-2 rounded-2xl hover:bg-black dark:hover:bg-gray-200 transition text-sm font-medium">
+                            <a href="<?= BASE_URL ?>/versements/create?membre_id=<?= $membre['id'] ?>&annee=<?= $annee ?>&mode=versement" class="bg-gray-900 dark:bg-white dark:text-gray-900 text-white px-3 py-1.5 rounded-xl hover:bg-black dark:hover:bg-gray-200 transition text-xs font-semibold">
                                 + Nouveau Versement
                             </a>
                         </div>
@@ -495,6 +538,11 @@
                                                     <?php if ($aPaid > 0): ?>+ <?= number_format($aPaid, 0, ',', ' ') ?><?php endif; ?>
                                                     FCFA
                                                 </span>
+                                                <?php if (!empty($rec['declaration_id'])): ?>
+                                                    <a href="<?= BASE_URL ?>/declarations/show?id=<?= $rec['declaration_id'] ?>" class="text-[9px] font-black bg-orange-100 text-orange-700 px-1.5 py-0.5 rounded uppercase hover:bg-orange-200 transition-colors w-fit mb-1">
+                                                        Via Décl. #<?= $rec['declaration_id'] ?>
+                                                    </a>
+                                                <?php endif; ?>
                                                 <?php if ($appliedAdvance > 0): ?>
                                                     <span class="text-[10px] text-purple-600 dark:text-purple-400 font-bold leading-tight">
                                                         <?php 

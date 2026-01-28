@@ -1,15 +1,15 @@
 <!-- Versements List -->
-<div class="mb-8 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-    <div>
-        <h1 class="text-3xl font-semibold text-gray-900 dark:text-white transition-colors">
+<div class="mb-8 flex flex-col md:flex-row md:items-center justify-between gap-4">
+    <div class="max-w-full">
+        <h1 class="text-2xl md:text-3xl font-bold text-gray-900 dark:text-white transition-colors break-words">
             <?= $membre ? 'Historique des Versements' : 'Versements par Membre' ?>
         </h1>
-        <p class="text-gray-600 dark:text-gray-400 mt-1 transition-colors">
+        <p class="text-sm md:text-base text-gray-600 dark:text-gray-400 mt-1 transition-colors break-words">
             <?= $membre ? 'Détails des paiements pour ' . htmlspecialchars($membre['designation']) : 'Sélectionnez un membre pour voir son historique' ?>
         </p>
     </div>
     <?php if ($membre): ?>
-        <a href="<?= BASE_URL ?>/versements" class="flex items-center gap-2 bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300 px-6 py-3 rounded-2xl hover:bg-gray-200 dark:hover:bg-gray-700 transition font-bold text-sm">
+        <a href="<?= BASE_URL ?>/versements" class="inline-flex items-center justify-center gap-2 bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300 px-6 py-3 rounded-2xl hover:bg-gray-200 dark:hover:bg-gray-700 transition font-bold text-sm min-w-fit self-start md:self-auto">
             <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"></path></svg>
             Retour à la liste
         </a>
@@ -49,25 +49,25 @@
 <!-- Member Info (if filtered by member) -->
 <?php if ($membre): ?>
     <div class="bg-blue-50 dark:bg-blue-900/10 border border-blue-200 dark:border-blue-800/50 rounded-3xl p-6 mb-8 transition-all hover:bg-blue-100 dark:hover:bg-blue-900/20 group">
-        <div class="flex items-center justify-between">
+        <div class="flex flex-col lg:flex-row lg:items-center justify-between gap-6">
             <div class="flex items-center gap-4">
-                <div class="w-12 h-12 rounded-full bg-blue-100 dark:bg-blue-900/30 flex items-center justify-center text-blue-600 dark:text-blue-400 font-bold text-xl">
+                <div class="flex-shrink-0 w-12 h-12 rounded-2xl bg-blue-100 dark:bg-blue-900/30 flex items-center justify-center text-blue-600 dark:text-blue-400 font-bold text-xl">
                     <?= strtoupper(substr($membre['designation'], 0, 1)) ?>
                 </div>
-                <div>
-                    <div class="flex items-center gap-2">
-                        <h2 class="text-xl font-bold text-gray-900 dark:text-white transition-colors"><?= htmlspecialchars($membre['designation']) ?></h2>
-                        <span class="px-2 py-0.5 bg-blue-100 dark:bg-blue-900/50 text-blue-700 dark:text-blue-300 text-[10px] font-bold rounded-md uppercase tracking-wider"><?= htmlspecialchars($membre['code']) ?></span>
+                <div class="min-w-0">
+                    <div class="flex flex-wrap items-center gap-2">
+                        <h2 class="text-xl font-bold text-gray-900 dark:text-white transition-colors truncate"><?= htmlspecialchars($membre['designation']) ?></h2>
+                        <span class="px-2 py-0.5 bg-blue-100 dark:bg-blue-900/50 text-blue-700 dark:text-blue-300 text-[10px] font-extrabold rounded-md uppercase tracking-wider shrink-0"><?= htmlspecialchars($membre['code']) ?></span>
                     </div>
-                    <p class="text-sm text-gray-500 dark:text-gray-400">Total mensuel: <?= number_format($membre['montant_mensuel'], 0, ',', ' ') ?> FCFA</p>
+                    <p class="text-sm text-gray-500 dark:text-gray-400 mt-1">Total mensuel: <span class="font-bold text-gray-900 dark:text-gray-200"><?= number_format($membre['montant_mensuel'], 0, ',', ' ') ?> FCFA</span></p>
                 </div>
             </div>
-            <div class="flex gap-3">
-                <a href="<?= BASE_URL ?>/versements/create?membre_id=<?= $membre['id'] ?>" class="flex items-center gap-2 bg-emerald-600 text-white px-5 py-2.5 rounded-xl hover:bg-emerald-700 transition-all font-bold text-sm shadow-sm">
+            <div class="flex flex-col sm:flex-row gap-3">
+                <a href="<?= BASE_URL ?>/versements/create?membre_id=<?= $membre['id'] ?>" class="flex items-center justify-center gap-2 bg-emerald-600 text-white px-5 py-3 rounded-2xl hover:bg-emerald-700 transition-all font-bold text-sm shadow-lg shadow-emerald-500/20">
                     <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"></path></svg>
                     Gérer les Paiements
                 </a>
-                <a href="<?= BASE_URL ?>/membres/show?id=<?= $membre['id'] ?>" class="flex items-center gap-2 bg-white dark:bg-gray-800 text-gray-900 dark:text-white px-5 py-2.5 rounded-xl border border-gray-200 dark:border-gray-700 hover:shadow-md transition-all font-bold text-sm">
+                <a href="<?= BASE_URL ?>/membres/show?id=<?= $membre['id'] ?>" class="flex items-center justify-center gap-2 bg-white dark:bg-gray-800 text-gray-900 dark:text-white px-5 py-3 rounded-2xl border border-gray-200 dark:border-gray-700 hover:shadow-xl transition-all font-bold text-sm">
                     Voir la fiche
                 </a>
             </div>

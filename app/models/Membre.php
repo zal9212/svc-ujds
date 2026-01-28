@@ -52,15 +52,17 @@ class Membre extends Model
 
             foreach ($situation['reconciled'] as $id => $data) {
                 if ((int)$data['annee'] === (int)$annee) {
-                    // Retards
-                    $vMonth = $moisOrder[$data['mois']] ?? 0;
-                    $isPastOrCurrent = ($annee < $currYear) || ($annee == $currYear && $vMonth <= $currMonth);
-                    $hasExplicitAmende = $data['is_amende'] || $data['display_statut'] === 'AMENDE';
+                    // Retards - Logique STRICTE (Même que _calculateFinalSummary)
+                $vMonth = $moisOrder[$data['mois']] ?? 0;
+                // Pour être en retard, le mois doit être STRICTEMENT PASSÉ
+                $isPast = ($annee < $currYear) || ($annee == $currYear && $vMonth < $currMonth);
+                $hasExplicitAmende = $data['is_amende'] || $data['display_statut'] === 'AMENDE';
 
-                    if (($isPastOrCurrent || $hasExplicitAmende) && !in_array($data['display_statut'], ['PAYE', 'PAYE (AVANCE)', 'ANTICIPATION']) && $data['due_total'] > $data['display_montant']) {
-                        $anneeStats['mois_retard']++;
-                    }
-
+                // On ne compte le retard QUE si le mois est passé (l'amende explicite ne force pas le retard sur mois en cours)
+                if ($isPast && !in_array($data['display_statut'], ['PAYE', 'PAYE (AVANCE)', 'ANTICIPATION']) && $data['due_total'] > $data['display_montant']) {
+                    $anneeStats['mois_retard']++;
+                }
+                
                     // Amendes
                     $anneeStats['amende'] += $data['amende_due'];
 
@@ -424,14 +426,17 @@ class Membre extends Model
             $totalAmendeDue += $data['amende_due'];
 
             if (strpos((string)$id, 'virt_') !== 0) {
-                // Pour être en retard, il faut que le mois soit passé ou actuel, OU qu'il ait une amende explicite
+                // Définition des variables de temps
                 $vYear = (int)$data['annee'];
                 $vMonth = $moisOrder[$data['mois']] ?? 0;
-                
-                $isPastOrCurrent = ($vYear < $currYear) || ($vYear == $currYear && $vMonth <= $currMonth);
+
+                // Pour être en retard, le mois doit être STRICTEMENT PASSÉ (pas le mois en cours)
+                $isPast = ($vYear < $currYear) || ($vYear == $currYear && $vMonth < $currMonth);
                 $hasExplicitAmende = $data['is_amende'] || $data['display_statut'] === 'AMENDE';
 
-                if (($isPastOrCurrent || $hasExplicitAmende) && !in_array($data['display_statut'], ['PAYE', 'PAYE (AVANCE)', 'ANTICIPATION']) && $data['due_total'] > $data['display_montant']) {
+                // CORRECTION : On ne compte le retard QUE si le mois est passé. 
+                // L'amende explicite ne doit pas forcer le retard sur un mois en cours.
+                if ($isPast && !in_array($data['display_statut'], ['PAYE', 'PAYE (AVANCE)', 'ANTICIPATION']) && $data['due_total'] > $data['display_montant']) {
                     $moisRetardRelatif++;
                 }
                 if (isset($data['original_statut']) && $data['original_statut'] === 'EN_ATTENTE') $moisRetardBrut++;
