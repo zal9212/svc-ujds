@@ -617,13 +617,33 @@
     <div class="bg-white dark:bg-gray-900 rounded-2xl w-full max-w-md p-6 transform scale-95 transition-transform duration-300 shadow-2xl border border-gray-200 dark:border-gray-800">
         <h3 class="text-lg font-bold text-gray-900 dark:text-white mb-4">Ajuster les Mois en Retard</h3>
         
-        <form action="<?= BASE_URL ?>/membres/update_financial_config" method="POST">
+        <form id="retardForm" action="<?= BASE_URL ?>/membres/update_financial_config" method="POST">
             <input type="hidden" name="<?= CSRF_TOKEN_NAME ?>" value="<?= Security::generateCsrfToken() ?>">
             <input type="hidden" name="id" value="<?= $membre['id'] ?>">
+            <input type="hidden" id="force_overwrite_input" name="force_overwrite" value="0">
 
             <div class="space-y-4">
                 <div class="bg-blue-50 dark:bg-blue-900/10 p-3 rounded-lg text-sm text-blue-800 dark:text-blue-200">
                     Définissez la durée et la date de fin. Cochez "Remise à zéro" pour remplacer le compteur actuel.
+                </div>
+
+                <!-- Conflict Warning Area (Hidden by default) -->
+                <div id="conflictWarning" class="hidden bg-orange-50 dark:bg-orange-900/10 border-2 border-orange-200 dark:border-orange-800 p-4 rounded-xl">
+                    <div class="flex items-start gap-3">
+                        <svg class="w-6 h-6 text-orange-600 dark:text-orange-400 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"></path>
+                        </svg>
+                        <div class="flex-1">
+                            <h4 class="font-bold text-orange-900 dark:text-orange-300 mb-2">⚠️ Conflit Détecté</h4>
+                            <p class="text-sm text-orange-800 dark:text-orange-200 mb-2">Les mois suivants sont déjà marqués comme payés :</p>
+                            <ul id="conflictList" class="list-disc pl-5 text-sm text-orange-700 dark:text-orange-300 space-y-1 mb-3">
+                                <!-- Filled by JavaScript -->
+                            </ul>
+                            <p class="text-sm font-medium text-orange-900 dark:text-orange-200">
+                                Que souhaitez-vous faire ?
+                            </p>
+                        </div>
+                    </div>
                 </div>
 
                 <div>
@@ -647,12 +667,23 @@
                     </label>
                 </div>
 
-                <div class="flex gap-3 mt-6 pt-2">
+                <!-- Action Buttons -->
+                <div id="normalActions" class="flex gap-3 mt-6 pt-2">
                     <button type="button" onclick="closeRetardModal()" class="flex-1 px-4 py-2 bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300 rounded-xl hover:bg-gray-200 dark:hover:bg-gray-700 transition font-medium">
                         Annuler
                     </button>
-                    <button type="submit" class="flex-1 px-4 py-2 bg-gray-900 dark:bg-white text-white dark:text-gray-900 rounded-xl hover:bg-black dark:hover:bg-gray-300 transition font-medium">
+                    <button type="button" id="checkButton" onclick="checkConflictsBeforeSubmit()" class="flex-1 px-4 py-2 bg-gray-900 dark:bg-white text-white dark:text-gray-900 rounded-xl hover:bg-black dark:hover:bg-gray-300 transition font-medium">
                         Appliquer
+                    </button>
+                </div>
+
+                <!-- Conflict Actions (Hidden by default) -->
+                <div id="conflictActions" class="hidden flex flex-col gap-2 mt-6 pt-2">
+                    <button type="button" onclick="closeRetardModal()" class="w-full px-4 py-2 bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300 rounded-xl hover:bg-gray-200 dark:hover:bg-gray-700 transition font-medium">
+                        Modifier le Mois de Départ
+                    </button>
+                    <button type="button" onclick="confirmOverwrite()" class="w-full px-4 py-2 bg-orange-600 text-white rounded-xl hover:bg-orange-700 transition font-medium shadow-lg">
+                        Écraser et Appliquer les Amendes
                     </button>
                 </div>
             </div>
@@ -661,10 +692,16 @@
 </div>
 
 <script>
+let currentConflicts = [];
+
 function openRetardModal() {
     const modal = document.getElementById('retardModal');
     modal.classList.remove('hidden', 'opacity-0', 'pointer-events-none');
     modal.classList.add('flex', 'opacity-100', 'pointer-events-auto');
+    
+    // Reset conflict state
+    resetConflictUI();
+    
     setTimeout(() => {
         modal.querySelector('div').classList.remove('scale-95');
         modal.querySelector('div').classList.add('scale-100');
@@ -675,10 +712,104 @@ function closeRetardModal() {
     const modal = document.getElementById('retardModal');
     modal.querySelector('div').classList.remove('scale-100');
     modal.querySelector('div').classList.add('scale-95');
+    
+    // Reset conflict state  
+    resetConflictUI();
+    
     setTimeout(() => {
         modal.classList.add('hidden', 'opacity-0', 'pointer-events-none');
         modal.classList.remove('flex', 'opacity-100', 'pointer-events-auto');
     }, 200);
+}
+
+function resetConflictUI() {
+    currentConflicts = [];
+    document.getElementById('conflictWarning').classList.add('hidden');
+    document.getElementById('normalActions').classList.remove('hidden');
+    document.getElementById('conflictActions').classList.add('hidden');
+    document.getElementById('force_overwrite_input').value = '0';
+}
+
+function checkConflictsBeforeSubmit() {
+    const moisRetard = document.querySelector('input[name="mois_retard"]').value;
+    const dateFinal = document.querySelector('input[name="date_finale"]').value;
+    const membreId = document.querySelector('input[name="id"]').value;
+    const checkButton = document.getElementById('checkButton');
+
+    if (!moisRetard || !dateFinal) {
+        alert('Veuillez remplir tous les champs requis.');
+        return;
+    }
+
+    // Disable button and show loading
+    checkButton.disabled = true;
+    checkButton.textContent = 'Vérification...';
+
+    // Check for conflicts via AJAX
+    fetch('<?= BASE_URL ?>/membres/check_late_months_conflicts', {
+        method: 'POST',
+        headers: { 
+            'Content-Type': 'application/x-www-form-urlencoded',
+            'X-Requested-With': 'XMLHttpRequest'
+        },
+        body: 'membre_id=' + membreId + '&mois_retard=' + moisRetard + '&date_finale=' + dateFinal
+    })
+    .then(async response => {
+        const data = await response.json();
+        if (response.ok && data.success) {
+            if (data.conflicts && data.conflicts.length > 0) {
+                // Conflicts found - show warning
+                currentConflicts = data.conflicts;
+                displayConflictWarning(data.conflicts);
+            } else {
+                // No conflicts - submit directly
+                document.getElementById('retardForm').submit();
+            }
+        } else {
+            throw new Error(data.message || 'Erreur lors de la vérification');
+        }
+    })
+    .catch(error => {
+        console.error('Error checking conflicts:', error);
+        alert('Erreur lors de la vérification des conflits : ' + error.message);
+    })
+    .finally(() => {
+        checkButton.disabled = false;
+        checkButton.textContent = 'Appliquer';
+    });
+}
+
+function displayConflictWarning(conflicts) {
+    const conflictList = document.getElementById('conflictList');
+    conflictList.innerHTML = '';
+    
+    conflicts.forEach(conflict => {
+        const li = document.createElement('li');
+        li.innerHTML = `<strong>${conflict.display}</strong> - ${new Intl.NumberFormat('fr-FR').format(conflict.montant)} FCFA (${conflict.statut})`;
+        conflictList.appendChild(li);
+    });
+    
+    // Show conflict warning and switch buttons
+    document.getElementById('conflictWarning').classList.remove('hidden');
+    document.getElementById('normalActions').classList.add('hidden');
+    document.getElementById('conflictActions').classList.remove('hidden');
+}
+
+function confirmOverwrite() {
+    const count = currentConflicts.length;
+    const totalAmount = currentConflicts.reduce((sum, c) => sum + parseFloat(c.montant), 0);
+    
+    const message = `⚠️ ATTENTION\n\n` +
+        `Vous êtes sur le point d'écraser ${count} mois déjà payés pour un total de ${new Intl.NumberFormat('fr-FR').format(totalAmount)} FCFA.\n\n` +
+        `Ces paiements seront SUPPRIMÉS et les mois seront marqués en retard avec application des amendes.\n\n` +
+        `Cette action est IRRÉVERSIBLE.\n\n` +
+        `Voulez-vous vraiment continuer ?`;
+    
+    if (confirm(message)) {
+        // Set force overwrite flag and submit
+        document.getElementById('force_overwrite_input').value = '1';
+        document.getElementById('retardForm').submit();
+    }
 }
 
 function promptDeleteAvance(id) {

@@ -317,37 +317,24 @@ class ExportController extends Controller
                         return;
                     }
 
-                    // Calculs détaillés
-                    $situation = $this->membreModel->getSituationFinanciere($membre);
-                    $membre = array_merge($membre, $situation);
+                    // Les calculs sont déjà faits dans getWithRelations
+                    // $membre contient déjà : mois_retard, total_verse, montant_du, amende
+                    // et aussi : reconciled, virtual_versements
                     
-                    // Compter les mois payés (Totalement ou Partiellement ou via Avance)
+                    // Compter les mois avec un montant versé (payé totalement, partiellement, ou via anticipation)
+                    // Un mois est considéré comme "versé" s'il a reçu un paiement (display_montant > 0)
                     $moisPayesCount = 0;
-                    foreach ($situation['reconciled'] as $m) {
-                        if ($m['paid_principal'] > 0) {
+                    foreach ($membre['reconciled'] as $m) {
+                        // Compter si le mois a reçu un paiement (direct ou via anticipation)
+                        if (($m['display_montant'] ?? 0) > 0) {
                             $moisPayesCount++;
                         }
                     }
 
-                    // Recalcul STRICT du Montant à Verser (Dettes + Amendes UNIQUEMENT)
-                    // On exclut les "EN_ATTENTE" qui ne sont pas des retards échus
-                    $montantStrictDu = 0;
-                    foreach ($situation['reconciled'] as $ver) {
-                        // On prend le montant restant dû pour ce mois
-                        $reste = $ver['due_total'] - $ver['display_montant'];
-                        
-                        // Si reste à payer > 0
-                        if ($reste > 0) {
-                            // On inclut SEULEMENT si c'est un RETARD avéré ou une AMENDE
-                            // On exclut EN_ATTENTE, ANTICIPATION, VIRTUAL
-                            if (in_array($ver['display_statut'], ['RETARD', 'AMENDE', 'PARTIEL'])) {
-                                $montantStrictDu += $reste;
-                            } elseif ($ver['display_statut'] === 'EN_ATTENTE' && ($ver['is_amende'] || $ver['amende_due'] > 0)) {
-                                // Cas rare : En attente mais avec amende due -> on compte l'amende
-                                $montantStrictDu += $ver['amende_due'];
-                            }
-                        }
-                    }
+                    // Utiliser directement le montant_du calculé par le système
+                    // Ce montant tient compte de TOUTES les dettes : paiements partiels, 
+                    // retards, amendes, etc.
+                    $montantDu = (float)($membre['montant_du'] ?? 0);
 
                     $filename = 'fiche_membre_' . preg_replace('/[^a-z0-9]/i', '_', $membre['code']) . '_' . date('Ymd') . '.pdf';
                     $pdf->SetTitle('Fiche Situation - ' . $membre['designation']);
@@ -377,14 +364,14 @@ class ExportController extends Controller
                                 </tr>
                                 <tr>
                                     <td style="font-size: 14px; font-weight: bold; color: #DC2626;">' . (int)$membre['mois_retard'] . '</td>
-                                    <td style="font-size: 14px; font-weight: bold; color: #DC2626;">' . number_format($montantStrictDu, 0, ',', ' ') . ' FCFA</td>
+                                    <td style="font-size: 14px; font-weight: bold; color: #DC2626;">' . number_format($montantDu, 0, ',', ' ') . ' FCFA</td>
                                     <td style="font-size: 14px; font-weight: bold; color: #059669;">' . $moisPayesCount . '</td>
                                     <td style="font-size: 14px; font-weight: bold; color: #059669;">' . number_format($membre['total_verse'], 0, ',', ' ') . ' FCFA</td>
                                 </tr>
                               </table><br><br>';
 
                     // Détail des impayés (si retard > 0)
-                    if ($montantStrictDu > 0) {
+                    if ($montantDu > 0) {
                         $html .= '<h3 style="color: #DC2626;">Détail des Dettes & Amendes</h3>';
                         $html .= '<table border="1" cellpadding="4">
                                     <tr style="background-color: #FEF2F2; font-weight: bold; color: #991B1B;">
@@ -393,22 +380,12 @@ class ExportController extends Controller
                                         <th width="25%">Statut</th>
                                         <th width="25%">Reste à Payer</th>
                                     </tr>';
-                        foreach ($situation['reconciled'] as $ver) {
+                        foreach ($membre['reconciled'] as $ver) {
                             $reste = $ver['due_total'] - $ver['display_montant'];
                             
-                            // Même filtre strict pour le tableau détaillé
-                            $shoudInclude = false;
-                            if ($reste > 0) {
-                                if (in_array($ver['display_statut'], ['RETARD', 'AMENDE', 'PARTIEL'])) {
-                                    $shoudInclude = true;
-                                } elseif ($ver['display_statut'] === 'EN_ATTENTE' && ($ver['is_amende'] || $ver['amende_due'] > 0)) {
-                                    $shoudInclude = true;
-                                    // Pour l'affichage, si c'est EN_ATTENTE avec amende, on n'affiche que l'amende comme due ?
-                                    // Simplification : on laisse le reste total qui inclut l'amende
-                                }
-                            }
-
-                            if ($shoudInclude) {
+                            // Afficher tous les mois avec un reste à payer > 0
+                            // Cela inclut les paiements partiels, retards, amendes, etc.
+                            if ($reste > 0.01) {
                                 $displayStatus = $ver['display_statut']; 
                                 $html .= '<tr>
                                             <td>' . ucfirst($ver['mois']) . '</td>

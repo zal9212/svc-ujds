@@ -378,6 +378,41 @@ class MembreController extends Controller
     }
 
     /**
+     * Vérifier les conflits avant d'ajouter des mois en retard (AJAX)
+     */
+    public function check_late_months_conflicts(): void
+    {
+        $this->requireRole(['admin', 'comptable']);
+
+        if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
+            $this->json(['success' => false, 'message' => 'Méthode non autorisée'], 405);
+        }
+
+        $membreId = (int) $this->post('membre_id');
+        $moisRetard = (int) $this->post('mois_retard');
+        $dateFinal = $this->post('date_finale');
+
+        if ($moisRetard <= 0 || empty($dateFinal)) {
+            $this->json(['success' => true, 'conflicts' => []]);
+            return;
+        }
+
+        try {
+            $conflicts = $this->versementModel->checkPaidMonthsInRange($membreId, $moisRetard, $dateFinal);
+            $this->json([
+                'success' => true,
+                'conflicts' => $conflicts,
+                'count' => count($conflicts)
+            ]);
+        } catch (Exception $e) {
+            $this->json([
+                'success' => false,
+                'message' => 'Erreur: ' . $e->getMessage()
+            ], 500);
+        }
+    }
+
+    /**
      * Mettre à jour la configuration financière (Retards/Avances)
      */
     public function update_financial_config(): void
@@ -399,6 +434,7 @@ class MembreController extends Controller
         $moisRetard = (int) $this->post('mois_retard', 0);
         $dateFinale = $this->post('date_finale');
         $resetRetards = $this->post('reset_retards') === '1'; // Checkbox
+        $forceOverwrite = $this->post('force_overwrite') === '1'; // Nouveau: force overwrite
         $avanceInitiale = (float) $this->post('avance_initiale', 0);
         
         $messages = [];
@@ -411,9 +447,12 @@ class MembreController extends Controller
                         $messages[] = "Remise à zéro : {$deletedCount} ancien(s) retard(s) supprimé(s).";
                     }
 
-                    $versementsCreated = $this->versementModel->createBulkUnpaidVersements($id, $moisRetard, $dateFinale);
+                    $versementsCreated = $this->versementModel->createBulkUnpaidVersements($id, $moisRetard, $dateFinale, $forceOverwrite);
                     if ($versementsCreated > 0) {
                         $messages[] = "{$versementsCreated} nouveau(x) versement(s) en retard généré(s).";
+                        if ($forceOverwrite) {
+                            $messages[] = "Les mois payés en conflit ont été écrasés.";
+                        }
                     } else {
                         $messages[] = "Aucun nouveau retard généré (existent déjà ?).";
                     }

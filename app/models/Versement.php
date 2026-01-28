@@ -124,13 +124,82 @@ class Versement extends Model
     }
 
     /**
+     * Vérifier si des mois dans la plage proposée sont déjà payés
+     * @param int $membreId ID du membre
+     * @param int $moisRetard Nombre de mois de retard à vérifier
+     * @param string $dateFinal Date finale de la période (YYYY-MM-DD)
+     * @return array Liste des mois en conflit avec leurs informations
+     */
+    public function checkPaidMonthsInRange(int $membreId, int $moisRetard, string $dateFinal): array
+    {
+        if ($moisRetard <= 0 || empty($dateFinal)) {
+            return [];
+        }
+
+        $moisList = [
+            'janvier', 'février', 'mars', 'avril', 'mai', 'juin',
+            'juillet', 'août', 'septembre', 'octobre', 'novembre', 'décembre'
+        ];
+
+        $timestamp = strtotime($dateFinal);
+        if (!$timestamp) {
+            return [];
+        }
+
+        $endYear = (int) date('Y', $timestamp);
+        $endMonth = (int) date('n', $timestamp);
+
+        $conflicts = [];
+        $currentYear = $endYear;
+        $currentMonth = $endMonth;
+        $count = 0;
+        $maxIterations = 120;
+        $iterations = 0;
+
+        // Remonter dans le temps et vérifier chaque mois
+        while ($count < $moisRetard && $iterations++ < $maxIterations) {
+            $moisNom = $moisList[$currentMonth - 1];
+
+            // Vérifier si ce mois est déjà payé (PAYE ou PARTIEL)
+            $sql = "SELECT id, mois, annee, montant, statut 
+                    FROM {$this->table} 
+                    WHERE membre_id = ? AND mois = ? AND annee = ? 
+                    AND statut IN ('PAYE', 'PARTIEL')";
+            $versement = $this->db->fetchOne($sql, [$membreId, $moisNom, $currentYear]);
+
+            if ($versement) {
+                $conflicts[] = [
+                    'id' => $versement['id'],
+                    'mois' => $versement['mois'],
+                    'annee' => $versement['annee'],
+                    'montant' => $versement['montant'],
+                    'statut' => $versement['statut'],
+                    'display' => ucfirst($versement['mois']) . ' ' . $versement['annee']
+                ];
+            }
+
+            $count++;
+
+            // Passer au mois précédent
+            $currentMonth--;
+            if ($currentMonth < 1) {
+                $currentMonth = 12;
+                $currentYear--;
+            }
+        }
+
+        return $conflicts;
+    }
+
+    /**
      * Créer des versements en masse pour les retards
      * @param int $membreId ID du membre
      * @param int $moisRetard Nombre de mois de retard
      * @param string $dateFinal Date finale de la période de retard (YYYY-MM-DD)
+     * @param bool $forceOverwrite Si true, supprime les versements payés dans la plage avant création
      * @return int Nombre de versements créés
      */
-    public function createBulkUnpaidVersements(int $membreId, int $moisRetard, string $dateFinal): int
+    public function createBulkUnpaidVersements(int $membreId, int $moisRetard, string $dateFinal, bool $forceOverwrite = false): int
     {
         if ($moisRetard <= 0 || empty($dateFinal)) {
             return 0;
@@ -169,6 +238,31 @@ class Versement extends Model
 
         try {
             $this->db->beginTransaction();
+
+            // Si force overwrite, supprimer d'abord les versements payés dans la plage
+            if ($forceOverwrite) {
+                $tempYear = $endYear;
+                $tempMonth = $endMonth;
+                $tempCount = 0;
+                $tempIterations = 0;
+
+                while ($tempCount < $totalMonths && $tempIterations++ < $maxIterations) {
+                    $moisNom = $moisList[$tempMonth - 1];
+                    
+                    // Supprimer le versement s'il existe et est payé
+                    $sqlDelete = "DELETE FROM {$this->table} 
+                                  WHERE membre_id = ? AND mois = ? AND annee = ? 
+                                  AND statut IN ('PAYE', 'PARTIEL')";
+                    $this->db->query($sqlDelete, [$membreId, $moisNom, $tempYear]);
+                    
+                    $tempCount++;
+                    $tempMonth--;
+                    if ($tempMonth < 1) {
+                        $tempMonth = 12;
+                        $tempYear--;
+                    }
+                }
+            }
 
             // On remonte dans le temps à partir de la date de fin
             while ($count < $totalMonths && $iterations++ < $maxIterations) {

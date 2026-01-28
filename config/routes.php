@@ -90,6 +90,7 @@ $router->add('POST', 'membres/delete', 'MembreController', 'delete');
 $router->add('POST', 'membres/change-statut', 'MembreController', 'changeStatut');
 $router->add('POST', 'membres/createAccount', 'MembreController', 'createAccount');
 $router->add('POST', 'membres/update_financial_config', 'MembreController', 'update_financial_config');
+$router->add('POST', 'membres/check_late_months_conflicts', 'MembreController', 'check_late_months_conflicts');
 
 // Versements
 $router->add('GET', 'versements', 'VersementController', 'index');
