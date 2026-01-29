@@ -180,9 +180,12 @@ class DeclarationController extends Controller
     public function sendMessage(): void
     {
         $this->requireAuth();
+        if ($_SERVER['REQUEST_METHOD'] !== 'POST' || !$this->validateCsrf()) {
+            $this->redirect(BASE_URL . '/declarations');
+        }
         $user = $this->getCurrentUser();
         $id = (int) $this->post('declaration_id');
-        $message = $this->post('message');
+        $message = $this->post('message', '');
 
         $declaration = $this->declarationModel->find($id);
         if (!$declaration) {
@@ -193,6 +196,9 @@ class DeclarationController extends Controller
         if ($user['role'] === 'membre') {
             $membre = $this->membreModel->findByUserId($user['id']);
             if (!$membre || $declaration['membre_id'] != $membre['id']) {
+                if ($this->isAjax()) {
+                    $this->json(['success' => false, 'message' => 'Accès refusé'], 403);
+                }
                 $this->redirect(BASE_URL . '/declarations');
             }
         }
@@ -235,10 +241,14 @@ class DeclarationController extends Controller
             $this->messageModel->create([
                 'declaration_id' => $id,
                 'sender_id' => $user['id'],
-                'message' => Security::sanitize($message),
+                'message' => Security::sanitize((string)$message),
                 'image_path' => $imagePath,
                 'audio_path' => $audioPath
             ]);
+        }
+
+        if ($this->isAjax()) {
+            $this->json(['success' => true]);
         }
 
         $this->redirect(BASE_URL . '/declarations/show?id=' . $id);

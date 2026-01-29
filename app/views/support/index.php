@@ -302,7 +302,16 @@
                                                 </div>
                                             </div>
                                             <audio class="hidden-audio" style="display:none" preload="auto">
-                                                <source src="<?= BASE_URL ?>/<?= $m['audio_path'] ?>" type="audio/webm">
+                                                <?php 
+                                                $ext = pathinfo($m['audio_path'], PATHINFO_EXTENSION);
+                                                $mime = match($ext) {
+                                                    'mp4', 'm4a' => 'audio/mp4',
+                                                    'ogg' => 'audio/ogg',
+                                                    'wav' => 'audio/wav',
+                                                    default => 'audio/webm'
+                                                };
+                                                ?>
+                                                <source src="<?= BASE_URL ?>/<?= $m['audio_path'] ?>" type="<?= $mime ?>">
                                             </audio>
                                         </div>
                                     </div>
@@ -347,6 +356,7 @@
         <div class="px-2 py-3 bg-[#f0f2f5] dark:bg-[#202c33] transition-colors">
             <form id="chat-form" action="<?= BASE_URL ?>/support/send" method="POST" enctype="multipart/form-data" class="flex items-center gap-2 max-w-5xl mx-auto px-2">
                 <input type="hidden" name="membre_id" value="<?= $membre['id'] ?>">
+                <input type="hidden" name="<?= CSRF_TOKEN_NAME ?>" value="<?= Security::generateCsrfToken() ?>">
                 
                 <div class="flex items-center gap-1">
                     <button type="button" class="p-2 text-gray-500 hover:text-gray-900 dark:hover:text-white transition">
@@ -360,7 +370,7 @@
 
                 <div class="relative flex-1 flex items-center">
                     <div id="input-container" class="flex-1">
-                        <textarea name="message" id="chat-input" rows="1" placeholder="Tapez un message" required
+                        <textarea name="message" id="chat-input" rows="1" placeholder="Tapez un message"
                             class="w-full px-4 py-2 bg-white dark:bg-[#2a3942] border-none rounded-xl text-[15px] focus:ring-0 transition-all resize-none placeholder-gray-500 dark:text-white"></textarea>
                     </div>
 
@@ -593,14 +603,37 @@
                 mediaRecorder.ondataavailable = (e) => audioChunks.push(e.data);
                 mediaRecorder.onstop = async () => {
                     if (audioChunks.length > 0 && isRecording) {
-                        const audioBlob = new Blob(audioChunks, { type: 'audio/webm' });
+                        const mimeType = mediaRecorder.mimeType || 'audio/webm';
+                        const audioBlob = new Blob(audioChunks, { type: mimeType });
                         const formData = new FormData(chatForm);
-                        formData.delete('message');
-                        formData.append('audio', audioBlob, 'vocal.webm');
+                        
+                        // Déterminer l'extension
+                        let ext = 'webm';
+                        if (mimeType.includes('mp4')) ext = 'mp4';
+                        else if (mimeType.includes('ogg')) ext = 'ogg';
+                        else if (mimeType.includes('wav')) ext = 'wav';
+                        
+                        // S'assurer que le message est vide mais présent
+                        if (!formData.has('message')) formData.append('message', '');
+                        formData.set('audio', audioBlob, `vocal.${ext}`);
+                        
                         try {
-                            const response = await fetch(chatForm.action, { method: 'POST', body: formData });
-                            if (response.ok) window.location.reload();
-                        } catch (err) { console.error("Upload failed:", err); }
+                            const response = await fetch(chatForm.action, { 
+                                method: 'POST', 
+                                body: formData,
+                                headers: { 'X-Requested-With': 'XMLHttpRequest' }
+                            });
+                            if (response.ok) {
+                                window.location.reload();
+                            } else {
+                                const errorData = await response.text();
+                                console.error("Server error:", errorData);
+                                alert("Erreur lors de l'envoi du vocal. Veuillez réessayer.");
+                            }
+                        } catch (err) { 
+                            console.error("Upload failed:", err);
+                            alert("Échec de la connexion. Vérifiez votre internet.");
+                        }
                     }
                     stream.getTracks().forEach(track => track.stop());
                 };

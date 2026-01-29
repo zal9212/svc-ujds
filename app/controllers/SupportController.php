@@ -85,15 +85,21 @@ class SupportController extends Controller
     public function send(): void
     {
         $this->requireAuth();
+        if ($_SERVER['REQUEST_METHOD'] !== 'POST' || !$this->validateCsrf()) {
+            $this->redirect(BASE_URL . '/support');
+        }
         $user = $this->getCurrentUser();
         
         $membreId = (int) $this->post('membre_id');
-        $message = $this->post('message');
+        $message = $this->post('message', '');
 
         // Sécurité membre : peut seulement envoyer à soi-même
         if ($user['role'] === 'membre') {
             $membre = $this->membreModel->findByUserId($user['id']);
             if (!$membre || $membre['id'] != $membreId) {
+                if ($this->isAjax()) {
+                    $this->json(['success' => false, 'message' => 'Accès refusé'], 403);
+                }
                 $this->redirect(BASE_URL . '/support');
             }
         }
@@ -136,12 +142,15 @@ class SupportController extends Controller
             $this->messageModel->create([
                 'membre_id' => $membreId,
                 'sender_id' => $user['id'],
-                'message' => Security::sanitize($message),
+                'message' => Security::sanitize((string)$message),
                 'image_path' => $imagePath,
                 'audio_path' => $audioPath
             ]);
         }
 
+        if ($this->isAjax()) {
+            $this->json(['success' => true]);
+        }
 
         if ($user['role'] === 'membre') {
             $this->redirect(BASE_URL . '/support');
