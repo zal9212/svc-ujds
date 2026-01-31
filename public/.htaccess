@@ -1,6 +1,10 @@
 RewriteEngine On
 RewriteBase /svc-ujds/public/
 
+# Redirection HTTPS forcee
+RewriteCond %{HTTPS} off
+RewriteRule ^(.*)$ https://%{HTTP_HOST}%{REQUEST_URI} [L,R=301]
+
 # Rediriger vers public/index.php si le fichier n'existe pas
 RewriteCond %{REQUEST_FILENAME} !-f
 RewriteCond %{REQUEST_FILENAME} !-d

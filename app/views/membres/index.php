@@ -97,9 +97,13 @@
                         <tr class="hover:bg-gray-50/50 dark:hover:bg-gray-900/50 transition-colors group">
                             <td class="px-4 md:px-8 py-5">
                                 <div class="flex items-center gap-3">
-                                    <div class="flex-shrink-0 w-10 h-10 md:w-12 md:h-12 rounded-2xl bg-gray-100 dark:bg-gray-800 flex items-center justify-center text-gray-600 dark:text-gray-400 font-bold text-lg md:text-xl transition-all group-hover:bg-blue-600 group-hover:text-white shadow-sm">
-                                        <?= strtoupper(substr($membre['designation'], 0, 1)) ?>
-                                    </div>
+                                    <a href="<?= BASE_URL ?>/membres/show?id=<?= $membre['id'] ?>" class="flex-shrink-0 w-10 h-10 md:w-12 md:h-12 rounded-2xl bg-gray-100 dark:bg-gray-800 flex items-center justify-center text-gray-600 dark:text-gray-400 font-bold text-lg md:text-xl transition-all hover:bg-blue-600 hover:text-white shadow-sm overflow-hidden shrink-0">
+                                        <?php if (!empty($membre['photo_profil'])): ?>
+                                            <img src="<?= BASE_URL . '/' . htmlspecialchars($membre['photo_profil']) ?>" alt="" class="w-full h-full object-cover">
+                                        <?php else: ?>
+                                            <?= strtoupper(substr($membre['designation'], 0, 1)) ?>
+                                        <?php endif; ?>
+                                    </a>
                                     <div class="min-w-0">
                                         <p class="font-bold text-sm md:text-base text-gray-900 dark:text-white group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors truncate"><?= htmlspecialchars($membre['designation']) ?></p>
                                         <div class="flex flex-wrap items-center gap-1 md:gap-2 mt-0.5">

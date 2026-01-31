@@ -1,4 +1,4 @@
-USE svc_ujds;
+-- USE svc_ujds;
 
 -- missing tables for support and declarations
 CREATE TABLE IF NOT EXISTS support_messages (

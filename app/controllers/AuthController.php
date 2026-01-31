@@ -69,6 +69,16 @@ class AuthController extends Controller
         $_SESSION['username'] = $user['username'];
         $_SESSION['user_role'] = $user['role'];
 
+        // Si c'est un membre, on récupère sa photo de profil pour le header
+        if ($user['role'] === 'membre') {
+            $membreModel = new Membre();
+            $membres = $membreModel->findAll(['user_id' => $user['id']], '', 1);
+            if (!empty($membres)) {
+                $_SESSION['user_photo'] = $membres[0]['photo_profil'];
+                $_SESSION['member_id'] = $membres[0]['id'];
+            }
+        }
+
         // Régénérer l'ID de session pour la sécurité
         session_regenerate_id(true);
 

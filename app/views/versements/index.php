@@ -180,7 +180,7 @@
                                 <td class="px-8 py-5 text-right">
                                     <?php if (in_array($currentUser['role'], ['admin', 'comptable']) && $versement['statut'] === 'EN_ATTENTE'): ?>
                                         <button 
-                                            onclick="markAsPaid(<?= $versement['id'] ?>)"
+                                            onclick="markAsPaid(<?= $versement['id'] ?>, <?= $membre['montant_mensuel'] ?>)"
                                             class="bg-emerald-600 hover:bg-emerald-700 text-white px-4 py-2 rounded-xl text-xs font-bold transition-all shadow-sm"
                                         >
                                             Payer
@@ -214,14 +214,8 @@
 
 <?php if (in_array($currentUser['role'], ['admin', 'comptable'])): ?>
 <script>
-function markAsPaid(versementId) {
-    const montant = prompt('Entrez le montant payé (FCFA):');
-    if (!montant || isNaN(montant) || montant <= 0) {
-        alert('Montant invalide');
-        return;
-    }
-    
-    if (!confirm('Marquer ce versement comme payé ?')) {
+function markAsPaid(versementId, defaultMontant) {
+    if (!confirm('Voulez-vous marquer ce versement de ' + defaultMontant.toLocaleString() + ' FCFA comme PAYÉ ?')) {
         return;
     }
     
@@ -230,7 +224,7 @@ function markAsPaid(versementId) {
         headers: {
             'Content-Type': 'application/x-www-form-urlencoded',
         },
-        body: `id=${versementId}&montant=${montant}&<?= CSRF_TOKEN_NAME ?>=<?= Security::generateCsrfToken() ?>`
+        body: `id=${versementId}&montant=${defaultMontant}&<?= CSRF_TOKEN_NAME ?>=<?= Security::generateCsrfToken() ?>`
     })
     .then(response => response.json())
     .then(data => {

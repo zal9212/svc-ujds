@@ -597,7 +597,8 @@ class Membre extends Model
             'misside' => $data['misside'] ?? null,
             'montant_mensuel' => $data['montant_mensuel'] ?? 0,
             'statut' => $data['statut'] ?? 'ACTIF',
-            'user_id' => $data['user_id'] ?? null
+            'user_id' => $data['user_id'] ?? null,
+            'photo_profil' => $data['photo_profil'] ?? null
         ];
 
         return $this->create($membreData);
@@ -610,7 +611,7 @@ class Membre extends Model
     {
         $updateData = [];
 
-        $allowedFields = ['numero', 'code', 'telephone', 'titre', 'designation', 'misside', 'montant_mensuel', 'statut', 'user_id'];
+        $allowedFields = ['numero', 'code', 'telephone', 'titre', 'designation', 'misside', 'montant_mensuel', 'statut', 'user_id', 'photo_profil'];
 
         foreach ($allowedFields as $field) {
             if (isset($data[$field])) {

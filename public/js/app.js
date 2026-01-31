@@ -15,7 +15,7 @@ async function ajaxRequest(url, method = 'POST', data = {}) {
             },
             body: method !== 'GET' ? JSON.stringify(data) : null
         });
-        
+
         return await response.json();
     } catch (error) {
         console.error('AJAX Error:', error);
@@ -31,67 +31,82 @@ function formatCurrency(amount) {
     }).format(amount) + ' FCFA';
 }
 
-// Auto-hide flash messages after 5 seconds
-document.addEventListener('DOMContentLoaded', function() {
+// Main logic on DOM load
+document.addEventListener('DOMContentLoaded', function () {
+    console.log('DOM Content Loaded - Initializing scripts');
+
+    // 1. Auto-hide flash messages
     const flashMessages = document.querySelectorAll('[role="alert"]');
-    flashMessages.forEach(function(message) {
-        setTimeout(function() {
+    flashMessages.forEach(function (message) {
+        setTimeout(function () {
             message.style.opacity = '0';
-            setTimeout(function() {
+            setTimeout(function () {
                 message.remove();
             }, 300);
         }, 5000);
     });
+
+    // 2. Theme Toggle Logic (Handled inline in main.php)
+    // Code removed to prevent conflict
+
+    // 3. User Dropdowns (Tablet & Desktop)
+    function setupDropdown(btnId, menuId) {
+        const btn = document.getElementById(btnId);
+        const menu = document.getElementById(menuId);
+
+        if (btn && menu) {
+            btn.addEventListener('click', function (e) {
+                e.stopPropagation();
+                menu.classList.toggle('hidden');
+            });
+
+            document.addEventListener('click', function (e) {
+                if (!menu.contains(e.target) && !btn.contains(e.target)) {
+                    menu.classList.add('hidden');
+                }
+            });
+        }
+    }
+
+    // Initialize tablet dropdown
+    setupDropdown('user-menu-button', 'user-dropdown');
+
+    // Initialize desktop dropdown
+    setupDropdown('desktop-user-menu-button', 'desktop-user-dropdown');
+
+    // 4. Mobile Menu Toggle
+    const mobileMenuBtn = document.getElementById('mobile-menu-button');
+    const mobileMenu = document.getElementById('mobile-menu');
+    const mobileMenuIcon = document.getElementById('mobile-menu-icon');
+
+    if (mobileMenuBtn && mobileMenu && mobileMenuIcon) {
+        console.log('Mobile menu elements found, attaching listener');
+        mobileMenuBtn.addEventListener('click', function () {
+            const isOpen = !mobileMenu.classList.contains('hidden');
+            console.log('Mobile menu clicked. Is open?', isOpen);
+
+            if (!isOpen) {
+                // Opening
+                mobileMenu.classList.remove('hidden');
+                mobileMenu.style.maxHeight = '0px';
+                setTimeout(() => {
+                    mobileMenu.style.maxHeight = '800px';
+                }, 10);
+                mobileMenuIcon.setAttribute('d', 'M6 18L18 6M6 6l12 12');
+            } else {
+                // Closing
+                mobileMenu.style.maxHeight = '0px';
+                mobileMenuIcon.setAttribute('d', 'M4 6h16M4 12h16M4 18h16');
+                setTimeout(() => {
+                    mobileMenu.classList.add('hidden');
+                }, 300);
+            }
+        });
+    } else {
+        if (window.innerWidth < 768) {
+            console.warn('Mobile menu elements not found on small screen');
+        }
+    }
 });
 
-// Form validation helper
-function validateForm(formId) {
-    const form = document.getElementById(formId);
-    if (!form) return false;
-    
-    const requiredFields = form.querySelectorAll('[required]');
-    let isValid = true;
-    
-    requiredFields.forEach(function(field) {
-        if (!field.value.trim()) {
-            field.classList.add('border-red-500');
-            isValid = false;
-        } else {
-            field.classList.remove('border-red-500');
-        }
-    });
-    
-    return isValid;
-}
-
-// Print helper
-function printPage() {
-    window.print();
-}
-
-// Export to CSV helper (basic)
-function exportTableToCSV(tableId, filename = 'export.csv') {
-    const table = document.getElementById(tableId);
-    if (!table) return;
-    
-    let csv = [];
-    const rows = table.querySelectorAll('tr');
-    
-    rows.forEach(function(row) {
-        const cols = row.querySelectorAll('td, th');
-        const csvRow = [];
-        cols.forEach(function(col) {
-            csvRow.push('"' + col.textContent.trim().replace(/"/g, '""') + '"');
-        });
-        csv.push(csvRow.join(','));
-    });
-    
-    const csvContent = csv.join('\n');
-    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
-    const link = document.createElement('a');
-    link.href = URL.createObjectURL(blob);
-    link.download = filename;
-    link.click();
-}
-
-console.log('SVC-UJDS Application Loaded');
+console.log('SVC-UJDS Application Script Loaded');

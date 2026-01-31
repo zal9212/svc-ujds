@@ -1,9 +1,29 @@
 <!-- Member Detail -->
 <div class="mb-8">
     <div class="flex flex-col md:flex-row md:items-center justify-between gap-6">
-        <div>
-            <h1 class="text-2xl md:text-3xl font-bold text-gray-900 dark:text-white transition-colors"><?= htmlspecialchars($membre['designation']) ?></h1>
-            <p class="text-gray-600 dark:text-gray-400 mt-1 transition-colors font-medium"><?= htmlspecialchars($membre['code']) ?></p>
+        <div class="flex items-center gap-4 md:gap-6">
+            <!-- Avatar -->
+            <div class="relative shrink-0">
+                <a href="<?= (in_array($currentUser['role'], ['admin', 'comptable'])) ? BASE_URL . '/membres/edit?id=' . $membre['id'] : BASE_URL . '/membres/profile' ?>" class="block group">
+                    <?php if (!empty($membre['photo_profil'])): ?>
+                    <img 
+                        src="<?= BASE_URL . '/' . htmlspecialchars($membre['photo_profil']) ?>" 
+                        alt="<?= htmlspecialchars($membre['designation']) ?>" 
+                        class="h-20 w-20 md:h-24 md:w-24 rounded-full object-cover border-4 border-white dark:border-gray-800 shadow-xl group-hover:ring-4 group-hover:ring-blue-500 transition-all"
+                    >
+                    <?php else: ?>
+                    <div class="h-20 w-20 md:h-24 md:w-24 rounded-full bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center text-white text-3xl font-bold shadow-xl border-4 border-white dark:border-gray-800 group-hover:ring-4 group-hover:ring-blue-500 transition-all">
+                        <?= strtoupper(substr($membre['designation'], 0, 1)) ?>
+                    </div>
+                    <?php endif; ?>
+                </a>
+                <div class="absolute bottom-1 right-1 h-5 w-5 rounded-full border-2 border-white dark:border-gray-800 <?= $membre['statut'] === 'ACTIF' ? 'bg-emerald-500' : ($membre['statut'] === 'VG' ? 'bg-blue-500' : 'bg-red-500') ?>"></div>
+            </div>
+
+            <div>
+                <h1 class="text-2xl md:text-3xl font-bold text-gray-900 dark:text-white transition-colors"><?= htmlspecialchars($membre['designation']) ?></h1>
+                <p class="text-gray-600 dark:text-gray-400 mt-1 transition-colors font-medium"><?= htmlspecialchars($membre['code']) ?></p>
+            </div>
         </div>
         <div class="flex flex-wrap items-center gap-3 w-full md:w-auto">
             <?php if (in_array($currentUser['role'], ['admin'])): ?>
@@ -264,7 +284,7 @@
                 <?php else: ?>
                     <div class="space-y-3">
                         <?php foreach ($lists['avances'] as $avance): ?>
-                                    <div class="border-b border-gray-100 dark:border-gray-800 pb-3 last:border-0 transition-colors group">
+                            <div class="border-b border-gray-100 dark:border-gray-800 pb-3 last:border-0 transition-colors group">
                                 <div class="flex items-center justify-between">
                                     <div>
                                         <div class="flex items-center gap-2">

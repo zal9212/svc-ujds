@@ -37,6 +37,20 @@ class MembreController extends Controller
             $membres = $this->membreModel->findAll([], 'designation ASC');
         }
 
+        // Filtrer pour ne pas afficher les admins/comptables dans la liste des membres
+        $membres = array_filter($membres, function($m) {
+            // Si le membre est lié à un utilisateur
+            if (!empty($m['user_id'])) {
+                $uModel = new Utilisateur();
+                $u = $uModel->find($m['user_id']);
+                // On l'exclut s'il est admin ou comptable
+                if ($u && in_array($u['role'], ['admin', 'comptable'])) {
+                    return false;
+                }
+            }
+            return true;
+        });
+
         $filteredMembres = [];
         // Ajouter les calculs pour chaque membre
         foreach ($membres as &$membre) {
@@ -195,6 +209,18 @@ class MembreController extends Controller
             $username = !empty($data['telephone']) ? $data['telephone'] : $data['code'];
             $userId = $utilisateurModel->createUser($username, '123456', 'membre');
 
+            // 1b. Gérer l'upload de la photo
+            $photoPath = null;
+            if (isset($_FILES['photo_profil']) && $_FILES['photo_profil']['error'] === UPLOAD_ERR_OK) {
+                try {
+                    $photoPath = $this->_handleFileUpload($_FILES['photo_profil']);
+                    $data['photo_profil'] = $photoPath;
+                } catch (Exception $e) {
+                    // On loggue l'erreur mais on ne bloque pas la création
+                    error_log("Photo upload error: " . $e->getMessage());
+                }
+            }
+
             // 2. Créer le membre avec le lien user_id
             $data['user_id'] = $userId;
             $id = $this->membreModel->createMembre($data);
@@ -314,6 +340,16 @@ class MembreController extends Controller
             'montant_mensuel' => (float) $this->post('montant_mensuel'),
             'statut' => $this->post('statut')
         ];
+
+        // Gestion de l'upload photo
+        if (isset($_FILES['photo_profil']) && $_FILES['photo_profil']['error'] === UPLOAD_ERR_OK) {
+            try {
+                $photoPath = $this->_handleFileUpload($_FILES['photo_profil']);
+                $data['photo_profil'] = $photoPath;
+            } catch (Exception $e) {
+                $this->setFlash('warning', "Erreur upload photo: " . $e->getMessage());
+            }
+        }
 
         try {
             $this->membreModel->updateMembre($id, $data);
@@ -487,5 +523,145 @@ class MembreController extends Controller
         }
 
         $this->redirect(BASE_URL . '/membres/show?id=' . $id);
+    }
+
+    /**
+     * Afficher le profil de l'utilisateur connecté
+     */
+    public function profile(): void
+    {
+        $this->requireAuth();
+        $currentUser = $this->getCurrentUser();
+        
+        // Trouver le membre correspondant à l'utilisateur
+        $membres = $this->membreModel->findAll(['user_id' => $currentUser['id']], '', 1);
+        $membre = !empty($membres) ? $membres[0] : null;
+
+        // Si pas de profil membre et que c'est un admin/comptable, on le crée à la volée
+        if (!$membre && in_array($currentUser['role'], ['admin', 'comptable'])) {
+            try {
+                $numero = $this->membreModel->getNextNumero();
+                $prefix = ($currentUser['role'] === 'admin') ? 'ADM' : 'CPT';
+                $code = $prefix . '-' . str_pad($numero, 4, '0', STR_PAD_LEFT);
+                
+                $membreData = [
+                    'numero' => $numero,
+                    'code' => $code,
+                    'designation' => $currentUser['username'],
+                    'user_id' => $currentUser['id'],
+                    'montant_mensuel' => 0, // Pas de cotisation pour le staff par défaut
+                    'statut' => 'ACTIF'
+                ];
+                
+                $membreId = $this->membreModel->createMembre($membreData);
+                $membre = $this->membreModel->find($membreId);
+            } catch (Exception $e) {
+                error_log("Error creating admin member profile: " . $e->getMessage());
+            }
+        }
+
+        if (!$membre) {
+            $this->setFlash('error', 'Profil membre non trouvé.');
+            $this->redirect(BASE_URL . '/dashboard');
+        }
+
+        $this->render('membres/form', [
+            'membre' => $membre,
+            'isProfile' => true,
+            'currentUser' => $currentUser
+        ]);
+    }
+
+    /**
+     * Mettre à jour le profil (par le membre lui-même)
+     */
+    public function updateProfile(): void
+    {
+        $this->requireAuth();
+        $currentUser = $this->getCurrentUser();
+
+        if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
+            $this->redirect(BASE_URL . '/membres/profile');
+        }
+
+        if (!$this->validateCsrf()) {
+            $this->setFlash('error', 'Token de sécurité invalide.');
+            $this->redirect(BASE_URL . '/membres/profile');
+        }
+
+        // Trouver le membre correspondant
+        $membres = $this->membreModel->findAll(['user_id' => $currentUser['id']], '', 1);
+        $membre = !empty($membres) ? $membres[0] : null;
+
+        if (!$membre) {
+            $this->setFlash('error', 'Profil non trouvé.');
+            $this->redirect(BASE_URL . '/dashboard');
+        }
+
+        $id = (int) $membre['id'];
+
+        // Seuls certains champs sont modifiables par le membre
+        $data = [
+            'designation' => $this->sanitize($this->post('designation')),
+            'telephone' => $this->sanitize($this->post('telephone')),
+            'titre' => $this->sanitize($this->post('titre')),
+        ];
+
+        // Gestion de l'upload photo
+        if (isset($_FILES['photo_profil']) && $_FILES['photo_profil']['error'] === UPLOAD_ERR_OK) {
+            try {
+                $photoPath = $this->_handleFileUpload($_FILES['photo_profil']);
+                $data['photo_profil'] = $photoPath;
+            } catch (Exception $e) {
+                $this->setFlash('warning', "Erreur upload photo: " . $e->getMessage());
+            }
+        }
+
+        try {
+            $this->membreModel->updateMembre($id, $data);
+            
+            // Mettre à jour la session si la photo a changé
+            if (isset($data['photo_profil'])) {
+                $_SESSION['user_photo'] = $data['photo_profil'];
+            }
+
+            $this->setFlash('success', 'Votre profil a été mis à jour.');
+            $this->redirect(BASE_URL . '/membres/profile');
+        } catch (Exception $e) {
+            $this->setFlash('error', 'Erreur lors de la mise à jour du profil.');
+            $this->redirect(BASE_URL . '/membres/profile');
+        }
+    }
+
+    /**
+     * Gérer l'upload de fichier
+     */
+    private function _handleFileUpload(array $file): string
+    {
+        $allowedTypes = ['image/jpeg', 'image/png', 'image/webp'];
+        $maxSize = 5 * 1024 * 1024; // 5MB
+
+        if (!in_array($file['type'], $allowedTypes)) {
+            throw new Exception("Type de fichier non autorisé. (JPG, PNG, WEBP uniquement)");
+        }
+
+        if ($file['size'] > $maxSize) {
+            throw new Exception("Fichier trop volumineux (Max 5MB).");
+        }
+
+        $uploadDir = PUBLIC_PATH . '/uploads/profile_pictures/';
+        if (!is_dir($uploadDir)) {
+            mkdir($uploadDir, 0755, true);
+        }
+
+        $extension = pathinfo($file['name'], PATHINFO_EXTENSION);
+        $filename = uniqid('profile_') . '.' . $extension;
+        $destination = $uploadDir . $filename;
+
+        if (!move_uploaded_file($file['tmp_name'], $destination)) {
+            throw new Exception("Erreur lors de l'enregistrement du fichier.");
+        }
+
+        return 'uploads/profile_pictures/' . $filename;
     }
 }

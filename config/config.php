@@ -4,11 +4,22 @@
  * Système de Gestion des Versements d'Association
  */
 
+// Chargement des variables d'environnement (.env)
+if (file_exists(__DIR__ . '/../.env')) {
+    $lines = file(__DIR__ . '/../.env', FILE_IGNORE_NEW_LINES | FILE_SKIP_EMPTY_LINES);
+    foreach ($lines as $line) {
+        if (strpos(trim($line), '#') === 0) continue;
+        list($name, $value) = explode('=', $line, 2);
+        putenv(trim($name) . '=' . trim($value));
+        $_ENV[trim($name)] = trim($value);
+    }
+}
+
 // Configuration de la base de données
-define('DB_HOST', 'localhost');
-define('DB_NAME', 'svc_ujds');
-define('DB_USER', 'root');
-define('DB_PASS', '');
+define('DB_HOST', getenv('DB_HOST') ?: 'localhost');
+define('DB_NAME', getenv('DB_NAME') ?: 'svc_ujds');
+define('DB_USER', getenv('DB_USER') ?: 'root');
+define('DB_PASS', getenv('DB_PASS') ?: '');
 define('DB_CHARSET', 'utf8mb4');
 
 // Construction du DSN
