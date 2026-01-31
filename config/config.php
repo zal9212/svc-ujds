@@ -16,11 +16,13 @@ if (file_exists(__DIR__ . '/../.env')) {
 }
 
 // Configuration de la base de données
-define('DB_HOST', getenv('DB_HOST') ?: 'localhost');
-define('DB_NAME', getenv('DB_NAME') ?: 'svc_ujds');
-define('DB_USER', getenv('DB_USER') ?: 'root');
-define('DB_PASS', getenv('DB_PASS') ?: '');
-define('DB_PORT', getenv('DB_PORT') ?: '3306');
+// Support pour les variables d'environnement Railway (MYSQL*) et standard (DB_*)
+define('DB_HOST', getenv('DB_HOST') ?: (getenv('MYSQLHOST') ?: 'localhost'));
+define('DB_PORT', getenv('DB_PORT') ?: (getenv('MYSQLPORT') ?: '3306'));
+define('DB_NAME', getenv('DB_NAME') ?: (getenv('MYSQLDATABASE') ?: 'svc_ujds'));
+define('DB_USER', getenv('DB_USER') ?: (getenv('MYSQLUSER') ?: 'root'));
+define('DB_PASS', getenv('DB_PASS') ?: (getenv('MYSQLPASSWORD') ?: ''));
+define('DB_URL',  getenv('DB_URL')  ?: (getenv('DATABASE_URL') ?: ''));   
 define('DB_CHARSET', 'utf8mb4');
 
 // Construction du DSN
